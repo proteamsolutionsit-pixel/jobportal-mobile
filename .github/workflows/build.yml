@@ -187,25 +187,18 @@ jobs:
         run: |
           set -euo pipefail
           # Pick whatever iPhone this runner image actually has rather than
-          # naming one. Hard-coding "iPhone 16" failed here, and `|| true`
-          # swallowed the boot error so the test then found no device at all.
-          udid=$(xcrun simctl list devices available --json | python3 -c "
-import json, sys
-devices = json.load(sys.stdin)['devices']
-for runtime in sorted(devices, reverse=True):
-    for dev in devices[runtime]:
-        if dev.get('isAvailable') and 'iPhone' in dev['name']:
-            print(dev['udid'])
-            raise SystemExit
-")
+          # naming one. Hard-coding "iPhone 16" failed, and `|| true` swallowed
+          # the boot error so the test then found no device at all.
+          udid=$(xcrun simctl list devices available --json | jq -r '[.devices[][] | select(.isAvailable and (.name | test("iPhone")))] | .[0].udid // empty')
           if [ -z "$udid" ]; then
             echo 'No iPhone simulator on this runner image:'
             xcrun simctl list devices available
             exit 1
           fi
+          echo "Booting $udid"
           xcrun simctl boot "$udid"
-          # Wait for the boot to finish. Without this the test races the
-          # simulator and reports "No devices are connected".
+          # Block until the boot finishes, or the test races it and reports
+          # "No devices are connected".
           xcrun simctl bootstatus "$udid" -b
           echo "udid=$udid" >> "$GITHUB_OUTPUT"
 
