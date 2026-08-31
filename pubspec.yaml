@@ -1,0 +1,85 @@
+name: jobportal_mobile
+description: "JobPortal — the JobSeeker app for jobsflood.com. Android and iOS."
+publish_to: 'none'
+
+# versionName / versionCode on Android; CFBundleShortVersionString / CFBundleVersion on iOS.
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.12.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+
+  # --- state management + DI -------------------------------------------------
+  # Riverpod: see docs/decisions.md D-004. Chosen for testability (a provider is
+  # overridable without a global), compile-time safety, and logic that does not
+  # need a BuildContext -- which is what lets the repository layer be tested with
+  # no widget tree at all.
+  flutter_riverpod: ^2.6.1
+
+  # --- networking ------------------------------------------------------------
+  # Dio + a PERSISTED cookie jar is the whole of decisions.md D-001. The session
+  # is `hh_token` (httpOnly) and the CSRF half is `hh_csrf`; the jar holds both
+  # and the interceptor echoes the latter in X-CSRF-Token on every unsafe verb.
+  #
+  # The jar holds a live session token, so it is a CREDENTIAL STORE and is
+  # persisted through flutter_secure_storage -- Android Keystore / iOS Keychain,
+  # never SharedPreferences.
+  dio: ^5.7.0
+  dio_cookie_manager: ^3.1.1
+  cookie_jar: ^4.0.8
+  flutter_secure_storage: ^9.2.2
+
+  # --- routing ---------------------------------------------------------------
+  # A notification's `link` is an IN-APP ROUTE and must never be opened as a URL
+  # (root CLAUDE.md rule 11 / business-rules.md §7). Declarative routing makes
+  # that mapping explicit and testable rather than a string handed to a launcher.
+  go_router: ^14.6.2
+
+  # --- presentation ----------------------------------------------------------
+  # Photos and logos are public and cache normally. RESUMES ARE NEVER CACHED --
+  # see business-rules.md §10. This package is for the former only.
+  cached_network_image: ^3.4.1
+
+  # Picking a CV or a profile photograph to upload.
+  file_picker: ^8.1.6
+  image_picker: ^1.1.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  integration_test:
+    sdk: flutter
+
+  flutter_lints: ^6.0.0
+
+  # Fakes the transport, not the API. Mocks are for automated tests ONLY --
+  # a mock reaching a shipped build is the "no fake implementations" rule broken.
+  http_mock_adapter: ^0.6.1
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/
+    - assets/icons/
+
+  # The same two variable faces the web build serves, so the app reads as the
+  # same product. Copied from jobportal-python/frontend/public/assets/fonts/ and
+  # converted woff2 -> ttf, because Flutter cannot load woff2 at all.
+  #
+  # One file per family: both are VARIABLE fonts carrying the whole weight axis.
+  # The CSS keeps a system stack behind them for the same reason Flutter falls
+  # back to the platform face -- nothing should reflow into something unreadable
+  # if a face fails to load.
+  fonts:
+    - family: InterVar
+      fonts:
+        - asset: assets/fonts/inter-var.ttf
+    - family: Jakarta
+      fonts:
+        - asset: assets/fonts/jakarta-var.ttf
