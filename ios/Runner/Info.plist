@@ -6,8 +6,12 @@
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<key>NSCameraUsageDescription</key>
+	<string>JobPortal uses your camera so you can take a profile photograph for recruiters to see.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>JobPortal needs access to your photos so you can choose a profile photograph.</string>
 	<key>CFBundleDisplayName</key>
-	<string>Jobportal Mobile</string>
+	<string>JobPortal</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>

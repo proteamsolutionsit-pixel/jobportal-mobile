@@ -1,6 +1,15 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- REQUIRED, and not present by default.
+         The Flutter template declares INTERNET only in the debug and profile
+         manifests, so a RELEASE build ships without it and every API call fails
+         on a real install — the app launches, sits on the splash, and nothing
+         works. Found by dumping the badging of the first APK CI produced; it is
+         invisible in debug, where the permission is merged in. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+
     <application
-        android:label="jobportal_mobile"
+        android:label="JobPortal"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
