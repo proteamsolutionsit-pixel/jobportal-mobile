@@ -176,7 +176,7 @@ jobs:
   ios-device-test:
     needs: verify
     runs-on: macos-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
@@ -207,7 +207,10 @@ jobs:
           echo "udid=$udid" >> "$GITHUB_OUTPUT"
 
       - name: Integration test
-        timeout-minutes: 25
+        # 40, not 25: building the app for a simulator is
+        # slow, and a 25-minute cap killed a run that had passed at about
+        # that length. A timeout should catch a hang, not a slow success.
+        timeout-minutes: 40
         run: |
           flutter devices
           flutter test integration_test/app_test.dart -d ${{ steps.sim.outputs.udid }} --dart-define=APP_ENV=development --dart-define=API_BASE_URL=http://127.0.0.1:8000
