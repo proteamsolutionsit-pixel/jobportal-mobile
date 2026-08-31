@@ -6,7 +6,20 @@ plugins {
 
 android {
     namespace = "com.jobsflood.jobportal_mobile"
-    compileSdk = flutter.compileSdkVersion
+
+    // Pinned to 36 rather than flutter.compileSdkVersion.
+    //
+    // flutter_plugin_android_lifecycle — pulled in by image_picker and
+    // file_picker — publishes AAR metadata requiring API 36 or later, so the
+    // Flutter default failed the build at :file_picker:checkReleaseAarMetadata
+    // with "requires libraries and applications that depend on it to compile
+    // against version 36 or later".
+    //
+    // compileSdk only decides which APIs are AVAILABLE at compile time; it does
+    // not change the minimum Android version the app runs on. That is minSdk,
+    // and it is untouched.
+    compileSdk = 36
+
     ndkVersion = flutter.ndkVersion
 
     compileOptions {

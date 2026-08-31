@@ -183,12 +183,33 @@ jobs:
       - run: flutter pub get
 
       - name: Boot a simulator
+        id: sim
         run: |
-          xcrun simctl list devices available
-          xcrun simctl boot "iPhone 16" || true
+          set -euo pipefail
+          # Pick whatever iPhone this runner image actually has rather than
+          # naming one. Hard-coding "iPhone 16" failed here, and `|| true`
+          # swallowed the boot error so the test then found no device at all.
+          udid=$(xcrun simctl list devices available --json | python3 -c "
+import json, sys
+devices = json.load(sys.stdin)['devices']
+for runtime in sorted(devices, reverse=True):
+    for dev in devices[runtime]:
+        if dev.get('isAvailable') and 'iPhone' in dev['name']:
+            print(dev['udid'])
+            raise SystemExit
+")
+          if [ -z "$udid" ]; then
+            echo 'No iPhone simulator on this runner image:'
+            xcrun simctl list devices available
+            exit 1
+          fi
+          xcrun simctl boot "$udid"
+          # Wait for the boot to finish. Without this the test races the
+          # simulator and reports "No devices are connected".
+          xcrun simctl bootstatus "$udid" -b
+          echo "udid=$udid" >> "$GITHUB_OUTPUT"
 
       - name: Integration test
         run: |
-          flutter test integration_test/app_test.dart \
-            --dart-define=APP_ENV=development \
-            --dart-define=API_BASE_URL=http://127.0.0.1:8000
+          flutter devices
+          flutter test integration_test/app_test.dart -d ${{ steps.sim.outputs.udid }} --dart-define=APP_ENV=development --dart-define=API_BASE_URL=http://127.0.0.1:8000
