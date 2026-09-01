@@ -176,7 +176,7 @@ jobs:
   ios-device-test:
     needs: verify
     runs-on: macos-latest
-    timeout-minutes: 60
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
@@ -207,10 +207,17 @@ jobs:
           echo "udid=$udid" >> "$GITHUB_OUTPUT"
 
       - name: Integration test
-        # 40, not 25: building the app for a simulator is
-        # slow, and a 25-minute cap killed a run that had passed at about
-        # that length. A timeout should catch a hang, not a slow success.
-        timeout-minutes: 40
+        # A good run of this job takes 15 minutes end to end (run 33405814643);
+        # the whole `ios` job, which builds a complete IPA, takes 5. So 25 is
+        # generous. An earlier commit raised this to 40 on the mistaken belief
+        # that a passing run had been cut off at 25 — it had not, it passed in
+        # 15. The job hangs rather than running slowly, and 40 only bought a
+        # longer wait for the same answer.
+        timeout-minutes: 25
         run: |
           flutter devices
-          flutter test integration_test/app_test.dart -d ${{ steps.sim.outputs.udid }} --dart-define=APP_ENV=development --dart-define=API_BASE_URL=http://127.0.0.1:8000
+          # --timeout bounds each TEST. Without it a hung test sits until the
+          # step timeout kills the whole job, which reports "the action timed
+          # out" and tells you nothing about which test stopped. With it, the
+          # harness fails the individual test and prints its stack.
+          flutter test integration_test/app_test.dart -d ${{ steps.sim.outputs.udid }} --timeout 300s --reporter expanded --dart-define=APP_ENV=development --dart-define=API_BASE_URL=http://127.0.0.1:8000
