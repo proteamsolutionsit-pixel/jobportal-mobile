@@ -56,3 +56,6 @@ key.properties
 *.mobileprovision
 *.p8
 *.p12
+
+# iOS signing material — private key, .p12, .p8, profiles. NEVER commit.
+tools/signing/
