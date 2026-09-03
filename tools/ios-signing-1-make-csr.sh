@@ -34,7 +34,10 @@ read -rp "  Your name or company [ProTeam Solutions]: " CN
 CN="${CN:-ProTeam Solutions}"
 
 openssl genrsa -out "$OUT/ios_distribution.key" 2048
-openssl req -new \
+# MSYS_NO_PATHCONV: Git Bash rewrites arguments that look like unix paths, so
+# -subj "/emailAddress=..." arrives as "C:/Program Files/Git/emailAddress=..."
+# and openssl rejects it. Only this line needs it.
+MSYS_NO_PATHCONV=1 openssl req -new \
   -key "$OUT/ios_distribution.key" \
   -out "$OUT/CertificateSigningRequest.certSigningRequest" \
   -subj "/emailAddress=${EMAIL}/CN=${CN}/C=IN"
@@ -46,7 +49,7 @@ echo "  Private key   $OUT/ios_distribution.key   <- keep, never share"
 echo "  Upload this   $OUT/CertificateSigningRequest.certSigningRequest"
 echo
 echo "Next: developer.apple.com -> Certificates, IDs & Profiles -> Certificates"
-echo "-> + -> Apple Distribution -> upload the .certSigningRequest above."
+echo "-> + -> iOS Distribution (App Store Connect and Ad Hoc) -> upload the .certSigningRequest above."
 echo "Download the resulting distribution.cer into $OUT/, then run:"
 echo
 echo "  bash tools/ios-signing-2-make-p12.sh"

@@ -50,6 +50,7 @@ dependencies:
   image_picker: ^1.1.2
 
 dev_dependencies:
+  flutter_launcher_icons: ^0.14.3
   flutter_test:
     sdk: flutter
   integration_test:
@@ -83,3 +84,22 @@ flutter:
     - family: Jakarta
       fonts:
         - asset: assets/fonts/jakarta-var.ttf
+
+# Generates the launcher icons for both platforms from the sources in
+# assets/images/. Regenerate after changing any of them:
+#
+#   dart run flutter_launcher_icons
+#
+# Three sources, not one, because the platforms want different things:
+#   app-icon-ios.png          NO alpha channel - the App Store rejects one
+#   app-icon-adaptive-fg.png  inset to the middle 66%, the only region an
+#                             Android launcher guarantees it will not mask off
+#   app-icon-android.png      the square legacy icon for older launchers
+flutter_launcher_icons:
+  android: "ic_launcher"
+  image_path_android: "assets/images/app-icon-android.png"
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/images/app-icon-adaptive-fg.png"
+  ios: true
+  image_path_ios: "assets/images/app-icon-ios.png"
+  remove_alpha_ios: true
