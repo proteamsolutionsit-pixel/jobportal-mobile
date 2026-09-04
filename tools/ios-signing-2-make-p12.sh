@@ -75,10 +75,12 @@ read -rsp "  Again:    " P12PW2; echo
 [ "$P12PW" = "$P12PW2" ] || { echo "They differ. Nothing written."; exit 1; }
 [ -n "$P12PW" ] || { echo "An empty password is refused by Apple's tooling."; exit 1; }
 
-# -legacy: Apple's codesign cannot read the AES-256 encryption OpenSSL 3
-# defaults to. Without this the import fails on the runner with an unhelpful
-# "MAC verification failed", which reads like a wrong password.
-openssl pkcs12 -export -legacy \
+# NO -legacy. That flag writes the old RC2-40/SHA1 format, and the common
+# advice to use it is STALE: a current macOS runner refuses it outright with
+#   security: SecKeychainItemImport: Unable to decode the provided data
+# because Apple dropped those weak algorithms. OpenSSL 3's AES-256 default is
+# what modern macOS wants. Verified against macos-latest, image 20260707.
+openssl pkcs12 -export \
   -inkey "$OUT/ios_distribution.key" \
   -in "$OUT/distribution.pem" \
   -out "$OUT/Certificates.p12" \

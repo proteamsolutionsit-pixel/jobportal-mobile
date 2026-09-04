@@ -91,7 +91,12 @@ jobs:
 
           echo "$CERT" | base64 --decode > "$RUNNER_TEMP/cert.p12"
           security import "$RUNNER_TEMP/cert.p12" -P "$CERT_PW" \
-            -A -t cert -f pkcs12 -k "$KEYCHAIN"
+            -A -t agg -f pkcs12 -k "$KEYCHAIN" \
+            -T /usr/bin/codesign -T /usr/bin/security
+          # -t agg, not -t cert: the file holds a certificate AND its private key,
+          # and asking for cert alone made security answer
+          # "SecKeychainItemImport: Unable to decode the provided data".
+          security find-identity -v -p codesigning "$KEYCHAIN"
           # Lets codesign use the key without an interactive prompt, which on a
           # headless runner would simply hang until the job times out.
           security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PW" "$KEYCHAIN"
