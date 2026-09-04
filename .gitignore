@@ -59,3 +59,7 @@ key.properties
 
 # iOS signing material — private key, .p12, .p8, profiles. NEVER commit.
 tools/signing/
+
+# Android release signing — key and passwords. NEVER commit.
+android/key.properties
+android/keystore/

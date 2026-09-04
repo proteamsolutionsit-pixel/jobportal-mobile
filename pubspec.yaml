@@ -50,6 +50,7 @@ dependencies:
   image_picker: ^1.1.2
 
 dev_dependencies:
+  flutter_native_splash: ^2.4.4
   flutter_launcher_icons: ^0.14.3
   flutter_test:
     sdk: flutter
@@ -103,3 +104,24 @@ flutter_launcher_icons:
   ios: true
   image_path_ios: "assets/images/app-icon-ios.png"
   remove_alpha_ios: true
+
+# Native splash, shown by the OS before Flutter has started. Without it the app
+# opens on a white (Android) or black (iOS) rectangle for the second or so the
+# engine takes to boot, which reads as a hang on a cold start.
+#
+# Regenerate after changing the logo:  dart run flutter_native_splash:create
+#
+# This is NOT the in-app splash route — that is Flutter's own, and it runs after
+# the engine is up. Both exist on purpose.
+flutter_native_splash:
+  color: "#FFFFFF"
+  image: assets/images/splash-logo.png
+  color_dark: "#0B1220"
+  image_dark: assets/images/splash-logo.png
+  android_12:
+    image: assets/images/splash-logo.png
+    color: "#FFFFFF"
+    color_dark: "#0B1220"
+  android: true
+  ios: true
+  web: false

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Platform-level backstop against plaintext HTTP in a release build.
+
+  Env.assertValid() already refuses to start on a non-https API_BASE_URL outside
+  development, but that only guards the app's OWN base URL. This covers every
+  request the process makes, including anything a dependency issues, and it is
+  enforced by Android rather than by our code.
+
+  cleartextTrafficPermitted="false" is also the default from API 28 up; stating
+  it explicitly means the guarantee does not quietly depend on minSdk.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>
