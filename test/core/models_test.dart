@@ -402,4 +402,57 @@ void main() {
       expect(Branding.decode(const <String, dynamic>{}).name, 'JobPortal');
     });
   });
+  group('CompanyOut reads the names the server actually sends', () {
+    // Both of these were wrong in the shipped app, and nothing caught it: the
+    // fields are optional, so a misspelt name is indistinguishable from an
+    // absent value and every company silently had no location and no job count.
+    // Payloads below are copied from live /api/companies and /api/jobs.
+
+    test('hq_location becomes city, open_jobs becomes jobCount', () {
+      final c = CompanyOut.fromWire(Wire.of({
+        'id': 145,
+        'name': '3M India',
+        'slug': '3m-india',
+        'logo_path': 'uploads/logos/co_145_581dff4cef3e.png',
+        'industry': null,
+        'hq_location': 'Bengaluru',
+        'size_bucket': '1000+',
+        'is_verified': true,
+        'open_jobs': 39,
+        'about': null,
+      }, 'CompanyOut'));
+
+      expect(c.city, 'Bengaluru');
+      expect(c.jobCount, 39);
+      expect(c.sizeBucket, '1000+');
+      expect(c.isVerified, isTrue);
+    });
+
+    test('the company nested in a job carries no count, and that is fine', () {
+      final c = CompanyOut.fromWire(Wire.of({
+        'id': 145,
+        'name': '3M India',
+        'hq_location': 'Gurugram',
+        'is_verified': false,
+      }, 'CompanyOut'));
+
+      expect(c.city, 'Gurugram');
+      expect(c.jobCount, isNull);
+      expect(c.isVerified, isFalse);
+    });
+
+    test('a field under the OLD name is ignored, not silently accepted', () {
+      final c = CompanyOut.fromWire(Wire.of({
+        'id': 1,
+        'name': 'X',
+        'city': 'Pune',
+        'job_count': 7,
+      }, 'CompanyOut'));
+
+      // If this ever starts passing, someone has reverted the field names.
+      expect(c.city, isNull);
+      expect(c.jobCount, isNull);
+    });
+  });
+
 }

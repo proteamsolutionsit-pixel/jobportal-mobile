@@ -100,6 +100,8 @@ class CompanyOut {
     this.website,
     this.about,
     this.jobCount,
+    this.sizeBucket,
+    this.isVerified = false,
   });
 
   final int id;
@@ -107,10 +109,17 @@ class CompanyOut {
   final String? slug;
   final String? logoPath;
   final String? industry;
+
+  /// The server calls this `hq_location`.
   final String? city;
   final String? website;
   final String? about;
+
+  /// The server calls this `open_jobs`, and sends it only from `/api/companies`
+  /// — the company nested inside a job carries no count.
   final int? jobCount;
+  final String? sizeBucket;
+  final bool isVerified;
 
   factory CompanyOut.fromWire(Wire w) => CompanyOut(
         id: w.integer('id'),
@@ -118,10 +127,19 @@ class CompanyOut {
         slug: w.strOrNull('slug'),
         logoPath: w.strOrNull('logo_path'),
         industry: w.strOrNull('industry'),
-        city: w.strOrNull('city'),
+        // `hq_location`, not `city`, and `open_jobs`, not `job_count`.
+        //
+        // Both were read under the wrong names, so both were silently null on
+        // every screen that touched a company — including the company nested in
+        // every job. Nothing threw: these are optional, so a wrong name is
+        // indistinguishable from an absent value. Checked against the live
+        // payloads of /api/companies and /api/jobs before changing them.
+        city: w.strOrNull('hq_location'),
         website: w.strOrNull('website'),
         about: w.strOrNull('about'),
-        jobCount: w.intOrNull('job_count'),
+        jobCount: w.intOrNull('open_jobs'),
+        sizeBucket: w.strOrNull('size_bucket'),
+        isVerified: w.boolean('is_verified', orElse: false),
       );
 }
 
