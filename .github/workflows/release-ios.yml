@@ -170,15 +170,34 @@ jobs:
             echo "app_env=production" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Build signed IPA
-        env:
-          TEAM_ID: ${{ secrets.IOS_TEAM_ID }}
+      - name: Build the archive (unsigned)
+        # --no-codesign, then sign on export.
+        #
+        # `flutter build ipa` runs its own pre-flight that looks for a DEVELOPMENT
+        # certificate and refuses before calling xcodebuild at all:
+        #   "No valid code signing certificates were found ... create an iOS
+        #    Development Certificate"
+        # An App Store build legitimately has only a DISTRIBUTION certificate, so
+        # that check can never pass here. Archiving unsigned sidesteps it, and
+        # xcodebuild -exportArchive does the real signing from ExportOptions.plist
+        # - which is where the identity and profile belong anyway.
         run: |
-          flutter build ipa --release \
-            --export-options-plist="$RUNNER_TEMP/ExportOptions.plist" \
+          flutter build ipa --release --no-codesign \
             --dart-define=APP_ENV=${{ steps.env.outputs.app_env }} \
             --dart-define=API_BASE_URL=${{ steps.env.outputs.url }}
+
+      - name: Sign and export the IPA
+        run: |
+          set -euo pipefail
+          xcodebuild -exportArchive \
+            -archivePath build/ios/archive/Runner.xcarchive \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
+            -exportPath build/ios/ipa
           ls -la build/ios/ipa/
+          # Prove it is actually signed rather than trusting the exit code.
+          ipa=$(ls build/ios/ipa/*.ipa | head -1)
+          unzip -q -o "$ipa" -d "$RUNNER_TEMP/ipacheck"
+          codesign -dv --verbose=2 "$RUNNER_TEMP/ipacheck/Payload/Runner.app" 2>&1 | head -12
 
       - uses: actions/upload-artifact@v4
         with:
