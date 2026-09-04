@@ -311,22 +311,33 @@ class _Wordmark extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
+        // The mark is rendered directly, with no plate behind it.
+        //
+        // It is already a self-contained badge — a white disc with a blue ring
+        // and transparent corners. Sitting it on a white rounded square put a
+        // white circle inside a white box, which swallowed the ring and made
+        // the whole thing read as a smudge. The shadow goes on the circle
+        // itself so it lifts off the gradient without a second shape.
         Container(
-          width: 72,
-          height: 72,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(R.lg + 6),
-            boxShadow: const [
+          width: 88,
+          height: 88,
+          decoration: const BoxDecoration(
+            shape: BoxShape.circle,
+            boxShadow: [
               BoxShadow(
-                color: Color(0x33101520),
-                blurRadius: 18,
-                offset: Offset(0, 6),
+                color: Color(0x40101520),
+                blurRadius: 24,
+                offset: Offset(0, 8),
               ),
             ],
           ),
-          padding: const EdgeInsets.all(6),
-          child: Image.asset('assets/images/app-icon.png', fit: BoxFit.contain),
+          child: Image.asset(
+            'assets/images/app-icon.png',
+            fit: BoxFit.contain,
+            // 512px source on an 88pt box: filtered down rather than letting
+            // the default nearest-ish sampling alias the ring.
+            filterQuality: FilterQuality.high,
+          ),
         ),
         const SizedBox(height: Sp.x3),
         Text(
