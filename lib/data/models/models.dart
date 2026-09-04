@@ -143,6 +143,57 @@ class CompanyOut {
       );
 }
 
+/// `GET /api/companies` — one page of the directory.
+class CompanyListOut {
+  const CompanyListOut({
+    required this.items,
+    required this.total,
+    required this.page,
+    required this.perPage,
+  });
+
+  final List<CompanyOut> items;
+
+  /// The server's own count, which is what any "N companies" label must use.
+  /// `items.length` is one page — the "3 views" bug this project already paid
+  /// for once.
+  final int total;
+  final int page;
+  final int perPage;
+
+  bool get hasMore => page * perPage < total;
+
+  factory CompanyListOut.fromWire(Wire w) => CompanyListOut(
+        items: w.list('items', CompanyOut.fromWire),
+        total: w.integer('total'),
+        page: w.intOrNull('page') ?? 1,
+        perPage: w.intOrNull('per_page') ?? 20,
+      );
+
+  static CompanyListOut decode(Object? json) =>
+      CompanyListOut.fromWire(Wire.of(json, 'CompanyListOut'));
+}
+
+/// `GET /api/companies/{id}` — the company plus the jobs it has open.
+///
+/// The nested jobs come back as `JobBriefOut`, not full postings.
+class CompanyDetailOut {
+  const CompanyDetailOut({required this.company, required this.jobs});
+
+  final CompanyOut company;
+  final List<JobBriefOut> jobs;
+
+  static CompanyDetailOut decode(Object? json) {
+    final w = Wire.of(json, 'CompanyDetailOut');
+    return CompanyDetailOut(
+      // The company's own fields are at the TOP level of this payload, not
+      // under a `company` key, so the same Wire is handed to both.
+      company: CompanyOut.fromWire(w),
+      jobs: w.listOrEmpty('jobs', JobBriefOut.fromWire),
+    );
+  }
+}
+
 // ===========================================================================
 // Jobs
 // ===========================================================================

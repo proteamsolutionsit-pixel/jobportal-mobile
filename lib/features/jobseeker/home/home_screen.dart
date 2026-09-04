@@ -129,6 +129,13 @@ class HomeScreen extends ConsumerWidget {
                   'Add your skills and experience and we will match you to roles.',
               onSeeAll: () => context.go(Routes.jobs),
             ),
+
+            const SizedBox(height: Sp.x5),
+
+            // The directory is a browse surface, not a setting, so it
+            // lives here rather than under Settings. There is no room for
+            // a sixth bottom tab.
+            _BrowseCompanies(),
           ],
         ),
       ),
@@ -270,6 +277,56 @@ class _Rail extends ConsumerWidget {
           },
         ),
       ],
+    );
+  }
+}
+
+/// Entry point to the employer directory.
+///
+/// A card rather than a bottom tab: the tab bar already carries five
+/// destinations, and browsing companies is an occasional act, not one of the
+/// five things a job seeker does every session.
+class _BrowseCompanies extends StatelessWidget {
+  const _BrowseCompanies();
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+
+    return Material(
+      color: C.brand50,
+      borderRadius: R.brLg,
+      child: InkWell(
+        borderRadius: R.brLg,
+        onTap: () => context.push(Routes.companies),
+        child: Container(
+          padding: const EdgeInsets.all(Sp.x4),
+          decoration: BoxDecoration(
+            borderRadius: R.brLg,
+            border: Border.all(color: C.brand100),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.domain_rounded, color: C.brand600),
+              const SizedBox(width: Sp.x3),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Browse companies', style: text.titleSmall),
+                    const SizedBox(height: 2),
+                    Text(
+                      'See who is hiring and what they have open',
+                      style: text.bodySmall,
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right_rounded, color: C.brand600),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

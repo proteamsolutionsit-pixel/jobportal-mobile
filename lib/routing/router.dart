@@ -13,6 +13,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../features/jobseeker/applications/applications_screen.dart';
+import '../features/jobseeker/companies/companies_screen.dart';
+import '../features/jobseeker/companies/company_detail_screen.dart';
 import '../features/jobseeker/authentication/auth_controller.dart';
 import '../features/jobseeker/authentication/change_password_screen.dart';
 import '../features/jobseeker/authentication/forgot_password_screen.dart';
@@ -56,6 +58,9 @@ abstract final class Routes {
   static const skills = '/profile/skills';
   static const links = '/profile/links';
   static const importCv = '/profile/import-cv';
+
+  /// Public — a signed-out reader can browse employers, as with jobs.
+  static const companies = '/companies';
 
   static String job(int id) => '/jobs/$id';
   static String history(HistoryKind kind) => '/profile/history/${kind.name}';
@@ -157,6 +162,18 @@ final routerProvider = Provider<GoRouter>((ref) {
         parentNavigatorKey: rootKey,
         builder: (_, state) => JobDetailScreen(
           jobId: int.parse(state.pathParameters['id']!),
+        ),
+      ),
+      GoRoute(
+        path: Routes.companies,
+        parentNavigatorKey: rootKey,
+        builder: (_, _) => const CompaniesScreen(),
+      ),
+      GoRoute(
+        path: '${Routes.companies}/:id',
+        parentNavigatorKey: rootKey,
+        builder: (_, state) => CompanyDetailScreen(
+          companyId: int.parse(state.pathParameters['id']!),
         ),
       ),
       GoRoute(

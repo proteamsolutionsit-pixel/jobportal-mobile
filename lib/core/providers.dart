@@ -11,6 +11,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/models/models.dart';
 import '../data/repositories/auth_repository.dart';
+import '../data/repositories/companies_repository.dart';
 import '../data/repositories/jobs_repository.dart';
 import '../data/repositories/seeker_repository.dart';
 import 'network/api_client.dart';
@@ -40,6 +41,23 @@ final jobsRepositoryProvider =
 
 final seekerRepositoryProvider =
     Provider<SeekerRepository>((ref) => SeekerRepository(ref.watch(apiClientProvider)));
+
+final companiesRepositoryProvider = Provider<CompaniesRepository>(
+    (ref) => CompaniesRepository(ref.watch(apiClientProvider)));
+
+/// One page of the company directory, keyed by the search text.
+///
+/// `autoDispose` with a family: without it every distinct query the reader
+/// types would keep its own result alive for the life of the app.
+final companyDirectoryProvider =
+    FutureProvider.autoDispose.family<CompanyListOut, String>((ref, q) async {
+  return ref.watch(companiesRepositoryProvider).list(q: q);
+});
+
+final companyDetailProvider =
+    FutureProvider.autoDispose.family<CompanyDetailOut, int>((ref, id) async {
+  return ref.watch(companiesRepositoryProvider).detail(id);
+});
 
 /// Site name and logo. Server-supplied settings, not constants — an uploaded
 /// logo overrides the bundled one, so hardcoding either would leave the app
