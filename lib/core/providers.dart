@@ -14,6 +14,7 @@ import '../data/repositories/auth_repository.dart';
 import '../data/repositories/companies_repository.dart';
 import '../data/repositories/jobs_repository.dart';
 import '../data/repositories/seeker_repository.dart';
+import 'auth/google_sign_in_service.dart';
 import 'network/api_client.dart';
 
 /// The session-expiry signal.
@@ -62,6 +63,19 @@ final companyDetailProvider =
 /// Site name and logo. Server-supplied settings, not constants — an uploaded
 /// logo overrides the bundled one, so hardcoding either would leave the app
 /// showing something the product has moved on from.
+/// Whether the SERVER has Google sign-in configured.
+///
+/// The button is rendered only when this is true, mirroring the web client.
+/// Asked rather than assumed: offering a door the server cannot open is a
+/// worse failure than not offering it.
+final googleAvailableProvider = FutureProvider<bool>((ref) async {
+  return ref.watch(authRepositoryProvider).googleAvailable();
+});
+
+/// The native Google SDK wrapper. Overridden in tests.
+final googleSignInServiceProvider =
+    Provider<GoogleSignInService>((ref) => GoogleSignInService());
+
 final brandingProvider = FutureProvider<Branding>((ref) async {
   return ref.watch(authRepositoryProvider).branding();
 });

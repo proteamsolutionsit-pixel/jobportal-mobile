@@ -17,6 +17,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/auth/google_sign_in_service.dart';
 import '../../../core/errors/api_exception.dart';
 import '../../../core/providers.dart';
 import '../../../core/theme/tokens.dart';
@@ -74,6 +75,34 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         _fieldErrors = e.fieldErrors;
       });
       _form.currentState!.validate();
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  /// Sign in with Google.
+  ///
+  /// A cancelled picker is SILENT. Backing out is a decision, not a failure,
+  /// and an error banner for it reads as though something broke.
+  Future<void> _google() async {
+    setState(() {
+      _busy = true;
+      _error = null;
+      _fieldErrors = const {};
+    });
+    try {
+      final token = await ref.read(googleSignInServiceProvider).idToken();
+      await ref.read(authControllerProvider.notifier).loginWithGoogle(token);
+      // The router's redirect takes it from here.
+    } on GoogleSignInCancelled {
+      // Nothing to say.
+    } on GoogleSignInFailed catch (e) {
+      if (mounted) setState(() => _error = e.message);
+    } on ApiException catch (e) {
+      // 404 means Google authenticated them but this application has no
+      // account for the address. The server puts the address in the sentence,
+      // so it is shown as sent rather than reworded.
+      if (mounted) setState(() => _error = e.message);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -230,6 +259,24 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             label: const Text('Email me a sign-in code'),
           ),
         ),
+        // Rendered ONLY when the server says it is configured, exactly as the
+        // web client does. A button that cannot work is worse than no button.
+        ref.watch(googleAvailableProvider).maybeWhen(
+              data: (on) => on
+                  ? Padding(
+                      padding: const EdgeInsets.only(top: Sp.x3),
+                      child: SizedBox(
+                        height: Touch.primary + 4,
+                        child: OutlinedButton.icon(
+                          onPressed: _busy ? null : _google,
+                          icon: const Icon(Icons.g_mobiledata_rounded, size: 26),
+                          label: const Text('Continue with Google'),
+                        ),
+                      ),
+                    )
+                  : const SizedBox.shrink(),
+              orElse: () => const SizedBox.shrink(),
+            ),
       ];
 
   Widget _footer(BuildContext context, TextTheme text) => Wrap(

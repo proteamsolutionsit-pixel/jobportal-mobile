@@ -71,6 +71,18 @@ class AuthController extends Notifier<AuthState> {
     return user;
   }
 
+  /// Sign in with Google.
+  ///
+  /// Two steps, and the split matters: the SDK produces a token, and the SERVER
+  /// decides whether it means anything. Nothing here inspects the token or
+  /// trusts a single claim in it.
+  Future<UserOut> loginWithGoogle(String idToken) async {
+    final user =
+        await ref.read(authRepositoryProvider).loginWithGoogle(idToken);
+    state = SignedIn(user);
+    return user;
+  }
+
   Future<UserOut> verifyLoginCode({
     required String email,
     required String code,

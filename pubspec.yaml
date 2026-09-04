@@ -3,7 +3,7 @@ description: "JobPortal — the JobSeeker app for jobsflood.com. Android and iOS
 publish_to: 'none'
 
 # versionName / versionCode on Android; CFBundleShortVersionString / CFBundleVersion on iOS.
-version: 1.0.0+3
+version: 1.0.0+4
 
 environment:
   sdk: ^3.12.2
@@ -15,6 +15,10 @@ dependencies:
   # Renders the web app's own hero wash and city skyline on the sign-in screen,
   # so the two products share literal artwork rather than an approximation.
   flutter_svg: ^2.0.17
+
+  # Native Google sign-in. NOT a webview: Google refuses OAuth inside one
+  # (disallowed_useragent), so the account picker has to be the platform's.
+  google_sign_in: ^6.2.2
 
   cupertino_icons: ^1.0.8
 

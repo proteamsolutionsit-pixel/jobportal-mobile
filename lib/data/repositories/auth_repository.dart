@@ -56,6 +56,36 @@ class AuthRepository {
     return UserOut.decode(json);
   }
 
+  /// Sign in with a Google ID token from the native SDK.
+  ///
+  /// The token is verified server-side — signature, audience and
+  /// `email_verified` — before any session exists. A 404 here means Google
+  /// authenticated the person but this application has no account for that
+  /// address, which is deliberate: an OAuth token cannot say whether a new
+  /// account should be a seeker, a recruiter or an agency, so none is invented.
+  Future<UserOut> loginWithGoogle(String idToken) async {
+    final json = await _api.post<Map<String, dynamic>>(
+      '/api/auth/google/mobile',
+      body: {'id_token': idToken},
+    );
+    return UserOut.decode(json);
+  }
+
+  /// Which third-party sign-in doors the server actually has configured.
+  ///
+  /// Asked rather than assumed: the button must not appear when the server
+  /// cannot honour it. Any failure answers "none", so a flaky call hides the
+  /// button rather than offering one that will fail.
+  Future<bool> googleAvailable() async {
+    try {
+      final json =
+          await _api.get<Map<String, dynamic>>('/api/auth/providers');
+      return json['google'] == true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   /// `POST /api/auth/login-code` — ask for a six-digit code.
   ///
   /// **One answer, always.** The same sentence and the same 200 for a registered
