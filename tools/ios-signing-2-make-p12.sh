@@ -75,12 +75,17 @@ read -rsp "  Again:    " P12PW2; echo
 [ "$P12PW" = "$P12PW2" ] || { echo "They differ. Nothing written."; exit 1; }
 [ -n "$P12PW" ] || { echo "An empty password is refused by Apple's tooling."; exit 1; }
 
-# NO -legacy. That flag writes the old RC2-40/SHA1 format, and the common
-# advice to use it is STALE: a current macOS runner refuses it outright with
+# -legacy IS required, and this comment has been wrong in both directions.
+#
+# macOS `security import` uses an old PKCS#12 parser: it reads the RC2-40/SHA1
+# format -legacy produces, and rejects OpenSSL 3's AES-256 default with
 #   security: SecKeychainItemImport: Unable to decode the provided data
-# because Apple dropped those weak algorithms. OpenSSL 3's AES-256 default is
-# what modern macOS wants. Verified against macos-latest, image 20260707.
-openssl pkcs12 -export \
+#
+# That same message also appears when `security import` is given -t cert for a
+# file containing a private key, which is what actually broke the first build.
+# One error, two unrelated causes — so a run that fails here proves nothing on
+# its own about the format. Both were tested separately before this was written.
+openssl pkcs12 -export -legacy \
   -inkey "$OUT/ios_distribution.key" \
   -in "$OUT/distribution.pem" \
   -out "$OUT/Certificates.p12" \
