@@ -23,7 +23,17 @@ gh auth status >/dev/null 2>&1 || { echo "Run: gh auth login"; exit 1; }
 gh auth switch --user proteamsolutionsit-pixel >/dev/null 2>&1 || true
 
 set_secret () {  # name, value
-  printf '%s' "$2" | gh secret set "$1" --repo "$REPO" --body -
+  # NO --body. `gh secret set --body <string>` takes the VALUE as its argument,
+  # so `--body -` sets the secret to the literal one-character string "-".
+  # gh reads stdin only when --body is ABSENT.
+  #
+  # That mistake cost four CI runs. Every secret was "-", the workflow's
+  # is-it-set check passed because "-" is not empty, and the certificate then
+  # decoded to 0 bytes — which `security` reports as "Unable to decode the
+  # provided data", the same message it gives for a bad format or a wrong
+  # password. Three format guesses followed before the step was instrumented
+  # to print the decoded byte count, which said 0 immediately.
+  printf '%s' "$2" | gh secret set "$1" --repo "$REPO"
   echo "  set $1"
 }
 
