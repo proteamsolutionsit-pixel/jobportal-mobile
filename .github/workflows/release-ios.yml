@@ -89,7 +89,28 @@ jobs:
           security set-keychain-settings -lut 3600 "$KEYCHAIN"
           security unlock-keychain -p "$KEYCHAIN_PW" "$KEYCHAIN"
 
-          echo "$CERT" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          # Decode with openssl rather than base64(1): the macOS base64 is BSD,
+          # not GNU, and its flag spelling differs. A silently mis-decoded file
+          # produces exactly the "Unable to decode the provided data" that three
+          # runs blamed on the p12 format.
+          printf %s "$CERT" | openssl base64 -d -A -out "$RUNNER_TEMP/cert.p12"
+
+          # Prove the file and password BEFORE handing them to `security`, whose
+          # one error message covers a corrupt file, an unreadable format and a
+          # wrong password without distinguishing them.
+          echo "decoded $(wc -c < "$RUNNER_TEMP/cert.p12") bytes"
+          if openssl pkcs12 -legacy -in "$RUNNER_TEMP/cert.p12" -nokeys \
+               -passin "pass:$CERT_PW" -out /dev/null 2>/dev/null; then
+            echo "p12 opens with this password (legacy/RC2 format)"
+          elif openssl pkcs12 -in "$RUNNER_TEMP/cert.p12" -nokeys \
+                 -passin "pass:$CERT_PW" -out /dev/null 2>/dev/null; then
+            echo "p12 opens with this password (modern/AES format)"
+          else
+            echo "::error::the .p12 does not open with IOS_CERTIFICATE_PASSWORD"
+            openssl pkcs12 -legacy -in "$RUNNER_TEMP/cert.p12" -nokeys \
+              -passin "pass:$CERT_PW" -out /dev/null || true
+            exit 1
+          fi
           security import "$RUNNER_TEMP/cert.p12" -P "$CERT_PW" \
             -A -t agg -f pkcs12 -k "$KEYCHAIN" \
             -T /usr/bin/codesign -T /usr/bin/security
