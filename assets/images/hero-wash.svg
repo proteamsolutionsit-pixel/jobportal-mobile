@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 620" preserveAspectRatio="xMidYMid slice" role="img" aria-hidden="true">
+  <title>Decorative background wash</title>
+
+  <!--
+    Designed to sit behind centred dark text, so everything here stays in the
+    top few percent of lightness. The previous version layered pastel towers,
+    floating profile cards and confetti dots: the cards clipped at the viewport
+    edges and one landed directly behind the sub-headline, and the whole band
+    needed a white scrim to stay readable — which just made it look foggy.
+    Now: a pale wash and three wide colour fields, nothing with an edge in it.
+    A flat skyline sat along the bottom until the track cards were laid over
+    it — the only parts still visible were the gaps between the cards, which
+    read as stray grey rectangles rather than a horizon.
+  -->
+
+  <defs>
+    <linearGradient id="wash" x1="0" y1="0" x2="0.15" y2="1">
+      <stop offset="0"    stop-color="#f4f8ff"/>
+      <stop offset="0.55" stop-color="#fbf9ff"/>
+      <stop offset="1"    stop-color="#ffffff"/>
+    </linearGradient>
+
+    <radialGradient id="fieldBlue" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#275df5" stop-opacity=".16"/>
+      <stop offset="1" stop-color="#275df5" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="fieldViolet" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#8951ff" stop-opacity=".15"/>
+      <stop offset="1" stop-color="#8951ff" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="fieldTeal" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#0e9b93" stop-opacity=".13"/>
+      <stop offset="1" stop-color="#0e9b93" stop-opacity="0"/>
+    </radialGradient>
+
+  </defs>
+
+  <rect width="1600" height="620" fill="url(#wash)"/>
+
+  <!-- wide, very soft colour fields -->
+  <ellipse cx="215"  cy="105" rx="470" ry="330" fill="url(#fieldBlue)"/>
+  <ellipse cx="1400" cy="80"  rx="480" ry="340" fill="url(#fieldViolet)"/>
+  <ellipse cx="800"  cy="600" rx="620" ry="300" fill="url(#fieldTeal)"/>
+
+</svg>

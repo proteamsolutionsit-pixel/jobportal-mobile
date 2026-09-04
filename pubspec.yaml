@@ -12,6 +12,10 @@ dependencies:
   flutter:
     sdk: flutter
 
+  # Renders the web app's own hero wash and city skyline on the sign-in screen,
+  # so the two products share literal artwork rather than an approximation.
+  flutter_svg: ^2.0.17
+
   cupertino_icons: ^1.0.8
 
   # --- state management + DI -------------------------------------------------
