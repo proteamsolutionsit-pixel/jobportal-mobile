@@ -39,6 +39,8 @@
 	<string>61359852805-u5qlnoi3doj1v4irvro2sjnscu8m4j6a.apps.googleusercontent.com</string>
 	<key>GIDServerClientID</key>
 	<string>61359852805-dagr0hepadlvhgef9qlka5klofkp9p7j.apps.googleusercontent.com</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>

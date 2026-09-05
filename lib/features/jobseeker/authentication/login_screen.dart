@@ -108,12 +108,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
   }
 
-  /// The second door. Sends the reader to the code screen with their address.
-  void _emailMeACode() {
-    final email = _email.text.trim();
-    context.push(Routes.loginCode, extra: email);
-  }
-
   @override
   Widget build(BuildContext context) {
     final brand = ref.watch(brandingProvider).valueOrNull;
@@ -235,44 +229,54 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         ),
         const SizedBox(height: Sp.x2),
         PrimaryButton(label: 'Sign in', busy: _busy, onPressed: _submit),
-        const SizedBox(height: Sp.x5),
-        Row(
-          children: [
-            const Expanded(child: Divider()),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: Sp.x3),
-              child: Text('or', style: Theme.of(context).textTheme.bodySmall),
-            ),
-            const Expanded(child: Divider()),
-          ],
-        ),
-        const SizedBox(height: Sp.x5),
-        // The second door, and a genuinely good one on a phone: the code
-        // arrives in the mail app on the same device. It is also the re-auth
-        // path when a 12-hour session ends, since there is no refresh token
-        // (MOB-B-001).
-        SizedBox(
-          height: Touch.primary + 4,
-          child: OutlinedButton.icon(
-            onPressed: _busy ? null : _emailMeACode,
-            icon: const Icon(Icons.mail_outline_rounded, size: 18),
-            label: const Text('Email me a sign-in code'),
-          ),
-        ),
-        // Rendered ONLY when the server says it is configured, exactly as the
-        // web client does. A button that cannot work is worse than no button.
+        // The other way in.
+        //
+        // This was "Email me a sign-in code" until 5 Sep 2026, when it became
+        // Google -- matching the web, which made the same swap on 1 Sep. The
+        // owner's reason there applies here: verifying an address belongs in
+        // the profile, not on the sign-in screen.
+        //
+        // NOTHING WAS REMOVED FROM THE SERVER. /api/auth/login-code and its
+        // verify route still exist and are unchanged, because the same
+        // machinery issues the codes that verify an address from the profile.
+        // What went is this screen's entrance to it.
+        //
+        // Rendered ONLY when /api/auth/providers says Google is configured --
+        // and while that call is in flight, nothing is drawn rather than a
+        // button that appears a beat late under someone already reaching for
+        // Sign in.
         ref.watch(googleAvailableProvider).maybeWhen(
               data: (on) => on
-                  ? Padding(
-                      padding: const EdgeInsets.only(top: Sp.x3),
-                      child: SizedBox(
-                        height: Touch.primary + 4,
-                        child: OutlinedButton.icon(
-                          onPressed: _busy ? null : _google,
-                          icon: const Icon(Icons.g_mobiledata_rounded, size: 26),
-                          label: const Text('Continue with Google'),
+                  ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const SizedBox(height: Sp.x5),
+                        Row(
+                          children: [
+                            const Expanded(child: Divider()),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: Sp.x3),
+                              child: Text(
+                                'or',
+                                style:
+                                    Theme.of(context).textTheme.bodySmall,
+                              ),
+                            ),
+                            const Expanded(child: Divider()),
+                          ],
                         ),
-                      ),
+                        const SizedBox(height: Sp.x5),
+                        SizedBox(
+                          height: Touch.primary + 4,
+                          child: OutlinedButton.icon(
+                            onPressed: _busy ? null : _google,
+                            icon: const Icon(Icons.g_mobiledata_rounded,
+                                size: 26),
+                            label: const Text('Continue with Google'),
+                          ),
+                        ),
+                      ],
                     )
                   : const SizedBox.shrink(),
               orElse: () => const SizedBox.shrink(),

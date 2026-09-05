@@ -52,7 +52,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Sign in'), findsWidgets);
-      expect(find.text('Email me a sign-in code'), findsOneWidget);
+      expect(find.text('Forgot password?'), findsOneWidget);
       expect(find.text('Forgot password?'), findsOneWidget);
     });
 

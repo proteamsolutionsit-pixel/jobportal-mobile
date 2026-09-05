@@ -126,6 +126,12 @@ class Harness {
   void stubCommon() {
     adapter
       ..onGet('/api/auth/me', (s) => s.reply(200, _user))
+      // The sign-in screen asks whether Google is configured before it can
+      // decide whether to draw that button, so every journey starting there
+      // needs this. Off by default: the flows under test are the password and
+      // emailed-code doors, and a Google button in the tree would only be
+      // another thing for a finder to trip over.
+      ..onGet('/api/auth/providers', (s) => s.reply(200, {'google': false}))
       ..onGet('/api/branding',
           (s) => s.reply(200, {'name': 'Jobsflood', 'logo_path': null}))
       ..onGet('/api/home/jobs', (s) => s.reply(200, {'items': [_job()]}))
@@ -181,7 +187,7 @@ void main() {
       await tester.pumpWidget(h.app);
       await settle(tester);
 
-      expect(find.text('Email me a sign-in code'), findsOneWidget);
+      expect(find.text('Forgot password?'), findsOneWidget);
     });
 
     testWidgets('with a stored session, restores and shows Home',
@@ -210,7 +216,7 @@ void main() {
       await tester.pumpWidget(h.app);
       await settle(tester);
 
-      expect(find.text('Email me a sign-in code'), findsOneWidget);
+      expect(find.text('Forgot password?'), findsOneWidget);
       // And the dead cookie is gone, so nothing later fails oddly.
       expect(await h.client.hasStoredSession(), isFalse);
     });
@@ -266,13 +272,36 @@ void main() {
             'detail': 'If that address has an account, a code is on its way.',
           }),
         )
+        ..onPost(
+          '/api/auth/forgot-password',
+          (s) => s.reply(200, {
+            'detail': 'If that address has an account, a reset link is on its way.',
+          }),
+        )
         ..onPost('/api/auth/login-code/verify', (s) => s.reply(200, _user));
 
       await tester.pumpWidget(h.app);
       await settle(tester);
 
-      await tester.enterText(find.byType(TextFormField).first, 'seeker@x.com');
-      await tester.tap(find.text('Email me a sign-in code'));
+      // The sign-in screen no longer offers this door. Its entrance is now
+      // Forgot password -> "Or sign in with an emailed code instead", which
+      // is the path a person actually takes, so that is the path tested.
+      // ensureVisible first: the branded sign-in screen is taller than it was,
+      // and a tap on a widget below the fold finds it but hit-tests nothing.
+      await tester.ensureVisible(find.text('Forgot password?'));
+      await settle(tester);
+      await tester.tap(find.text('Forgot password?'));
+      await settle(tester);
+
+      // TextField, not TextFormField: the forgot-password screen uses a plain
+      // one, so .byType(TextFormField) matched nothing and the finder threw
+      // "Bad state: No element" rather than saying what was missing.
+      await tester.enterText(find.byType(TextField).first, 'seeker@x.com');
+      await tester.tap(find.widgetWithText(FilledButton, 'Send reset link'));
+      await settle(tester);
+
+      await tester.tap(find.text('Or sign in with an emailed code instead'));
+      await settle(tester);
       await settle(tester);
 
       await tester.tap(find.widgetWithText(FilledButton, 'Email me a code'));
@@ -767,7 +796,7 @@ void main() {
       await tester.tap(find.widgetWithText(FilledButton, 'Sign out'));
       await settle(tester);
 
-      expect(find.text('Email me a sign-in code'), findsOneWidget);
+      expect(find.text('Forgot password?'), findsOneWidget);
       expect(await h.client.hasStoredSession(), isFalse);
     });
   });

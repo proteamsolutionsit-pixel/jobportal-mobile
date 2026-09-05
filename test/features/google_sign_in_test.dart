@@ -115,8 +115,8 @@ void main() {
       await settle(tester);
 
       expect(find.text('Continue with Google'), findsNothing);
-      // The other doors are unaffected.
-      expect(find.text('Email me a sign-in code'), findsOneWidget);
+      // The password door is unaffected — with Google off, it is the only one.
+      expect(find.text('Forgot password?'), findsOneWidget);
     });
 
     testWidgets('shown when the server reports google: true', (tester) async {
