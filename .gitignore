@@ -63,3 +63,6 @@ tools/signing/
 # Android release signing — key and passwords. NEVER commit.
 android/key.properties
 android/keystore/
+
+# Gradle output from a local android build; the repo already ignores /build.
+android/build/
