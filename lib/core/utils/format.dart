@@ -300,3 +300,22 @@ String fileSizeLabel(int? bytes) {
 /// figure as if it were exact is a precise-looking wrong number, which is worse
 /// than an obviously approximate one.
 String resultCount(int total, {bool capped = false}) => capped ? '$total+' : '$total';
+
+/// Which of the eight decorative tones a piece of text wears — a skill chip,
+/// an employer's card. Port of `toneOf()` in `frontend/src/lib/format.ts`,
+/// FNV-1a over the trimmed, lower-cased text, so the same word is the same
+/// colour in the app and on the web. Both sides hash UTF-16 code units
+/// (`charCodeAt` there, `codeUnits` here), which is what keeps them agreeing
+/// beyond ASCII.
+int toneOf(String? text, {int count = 8}) {
+  final s = (text ?? '').trim().toLowerCase();
+  if (s.isEmpty) return 1;
+
+  var h = 0x811c9dc5;
+  for (final unit in s.codeUnits) {
+    h ^= unit;
+    // Math.imul(h, 0x01000193) >>> 0: a 32-bit multiply, kept unsigned.
+    h = (h * 0x01000193) & 0xFFFFFFFF;
+  }
+  return (h % count) + 1;
+}

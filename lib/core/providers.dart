@@ -10,6 +10,7 @@ library;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/models/models.dart';
+import '../data/repositories/assistant_repository.dart';
 import '../data/repositories/auth_repository.dart';
 import '../data/repositories/companies_repository.dart';
 import '../data/repositories/jobs_repository.dart';
@@ -45,6 +46,9 @@ final seekerRepositoryProvider =
 
 final companiesRepositoryProvider = Provider<CompaniesRepository>(
     (ref) => CompaniesRepository(ref.watch(apiClientProvider)));
+
+final assistantRepositoryProvider = Provider<AssistantRepository>(
+    (ref) => AssistantRepository(ref.watch(apiClientProvider)));
 
 /// One page of the company directory, keyed by the search text.
 ///

@@ -85,6 +85,92 @@ abstract final class C {
   static const lineStrong = Color(0xFFD3D4E3);
 }
 
+/// One decorative tone: a wash, a border for it, readable text on it, and the
+/// solid colour (an icon badge, a card's accent bar).
+typedef Tone = ({Color wash, Color border, Color ink, Color solid});
+
+/// The web's eight-tone rotation, `--t1` … `--t8` in `app.css`: the `.chip--tN`,
+/// `.jobcard--tN` and `.ccard--tN` families. Which one a thing gets is
+/// [toneOf] in `core/utils/format.dart` — the same hash as the web's, so a
+/// skill or an employer wears the same colour on both.
+///
+/// Decorative only: every chip still carries its label.
+abstract final class Tones {
+  static const all = <Tone>[
+    (wash: C.brand50, border: C.brand100, ink: C.brand600, solid: C.brand500),
+    (wash: C.violet50, border: Color(0xFFE2D4FF), ink: C.violet600, solid: C.violet500),
+    (wash: C.teal50, border: Color(0xFFC4ECE9), ink: Color(0xFF0A7B74), solid: C.teal500),
+    (wash: C.amber50, border: Color(0xFFF5E2B0), ink: C.warn600, solid: C.amber500),
+    (wash: C.pink50, border: Color(0xFFFFD0E1), ink: Color(0xFFB8285E), solid: C.pink500),
+    (wash: C.lime50, border: Color(0xFFD6EFB8), ink: Color(0xFF477A0C), solid: C.lime500),
+    (wash: C.sky50, border: Color(0xFFC2E5FB), ink: C.sky600, solid: C.sky500),
+    (wash: C.cta50, border: Color(0xFFFFD3C6), ink: C.cta600, solid: C.cta500),
+  ];
+
+  /// Tone N, 1-based like the CSS class names.
+  static Tone of(int n) => all[(n - 1) % all.length];
+
+  // Named, for the fixed-tone uses (stat tiles, section icons) where the web
+  // names a colour rather than hashing one.
+  static Tone get brand => all[0];
+  static Tone get violet => all[1];
+  static Tone get teal => all[2];
+  static Tone get amber => all[3];
+  static Tone get pink => all[4];
+  static Tone get lime => all[5];
+  static Tone get sky => all[6];
+  static const ok = (wash: C.ok50, border: Color(0xFFC9EBCB), ink: C.ok600, solid: C.ok500);
+}
+
+/// The two gradients the web's seeker pages are built around.
+abstract final class Gradients {
+  /// `.page-hero` — the greeting banner: brand blue with a violet glow at the
+  /// top right.
+  static const hero = [
+    LinearGradient(
+      begin: Alignment(-1, -0.4),
+      end: Alignment(1, 0.4),
+      colors: [C.brand600, C.brand500, C.brand400],
+      stops: [0, 0.46, 1],
+    ),
+    RadialGradient(
+      center: Alignment(0.8, -0.92),
+      radius: 1.2,
+      colors: [Color(0x6B8951FF), Color(0x008951FF)],
+      stops: [0, 0.6],
+    ),
+  ];
+
+  /// `.profhead__band` — the profile header: blue with pink, violet and teal
+  /// glows.
+  static const band = [
+    LinearGradient(
+      begin: Alignment(-1, -0.3),
+      end: Alignment(1, 0.3),
+      colors: [C.brand600, C.brand400, C.brand300],
+      stops: [0, 0.6, 1],
+    ),
+    RadialGradient(
+      center: Alignment(-0.84, 1.4),
+      radius: 0.9,
+      colors: [Color(0x8CE0417A), Color(0x00E0417A)],
+      stops: [0, 0.7],
+    ),
+    RadialGradient(
+      center: Alignment(0.84, -1.4),
+      radius: 1.0,
+      colors: [Color(0xA68951FF), Color(0x008951FF)],
+      stops: [0, 0.7],
+    ),
+    RadialGradient(
+      center: Alignment(0, 1.8),
+      radius: 0.8,
+      colors: [Color(0x730E9B93), Color(0x000E9B93)],
+      stops: [0, 0.7],
+    ),
+  ];
+}
+
 /// Spacing scale — `--sp-1` … `--sp-8`.
 abstract final class Sp {
   static const x1 = 4.0;

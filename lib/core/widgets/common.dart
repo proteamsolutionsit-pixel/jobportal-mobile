@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 
 import '../config/environment.dart';
 import '../theme/tokens.dart';
+import '../utils/format.dart';
 
 /// A small status or attribute chip.
 ///
@@ -41,6 +42,13 @@ class Tag extends StatelessWidget {
       'withdrawn' => Tag(label, background: C.surfaceSunk, foreground: C.ink500),
       _ => Tag(label, background: C.surfaceSunk, foreground: C.ink700),
     };
+  }
+
+  /// A chip coloured by its own text — the web's `.chip--tN`, via [toneOf], so a
+  /// skill is the same colour in the app and on the site.
+  factory Tag.tone(String label, {IconData? icon}) {
+    final t = Tones.of(toneOf(label));
+    return Tag(label, icon: icon, background: t.wash, foreground: t.ink, border: t.border);
   }
 
   @override
@@ -99,14 +107,17 @@ class CompanyLogo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final initial = name.trim().isEmpty ? '?' : name.trim()[0].toUpperCase();
+    // Each employer wears its own tone, as its card does on the web, so a
+    // list of logo-less companies is not a column of identical blue squares.
+    final tone = Tones.of(toneOf(name));
 
     final fallback = Container(
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: C.brand50,
+        color: tone.wash,
         borderRadius: BorderRadius.circular(R.md),
-        border: Border.all(color: C.line),
+        border: Border.all(color: tone.border),
       ),
       alignment: Alignment.center,
       child: Text(
@@ -115,7 +126,7 @@ class CompanyLogo extends StatelessWidget {
           fontFamily: Fonts.display,
           fontSize: size * 0.42,
           fontWeight: FontWeight.w700,
-          color: C.brand600,
+          color: tone.ink,
         ),
       ),
     );
@@ -151,10 +162,18 @@ class Avatar extends StatelessWidget {
         ? '?'
         : parts.take(2).map((s) => s[0].toUpperCase()).join();
 
+    // The web's initials avatar: a violet-to-brand disc with white letters.
     final fallback = Container(
       width: size,
       height: size,
-      decoration: const BoxDecoration(color: C.brand100, shape: BoxShape.circle),
+      decoration: const BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [C.violet500, C.brand500],
+        ),
+      ),
       alignment: Alignment.center,
       child: Text(
         initials,
@@ -162,7 +181,7 @@ class Avatar extends StatelessWidget {
           fontFamily: Fonts.display,
           fontSize: size * 0.34,
           fontWeight: FontWeight.w700,
-          color: C.brand700,
+          color: Colors.white,
         ),
       ),
     );
@@ -203,6 +222,7 @@ class SectionCard extends StatelessWidget {
     this.actionLabel,
     this.onAction,
     this.icon,
+    this.tone,
     this.padding = const EdgeInsets.all(Sp.x4),
   });
 
@@ -211,24 +231,43 @@ class SectionCard extends StatelessWidget {
   final String? actionLabel;
   final VoidCallback? onAction;
   final IconData? icon;
+
+  /// When set, the icon sits on a solid badge of this tone and the header takes
+  /// a wash of it, as each section of the web profile does.
+  final Tone? tone;
   final EdgeInsets padding;
 
   @override
   Widget build(BuildContext context) {
+    final t = tone;
     return Container(
       decoration: BoxDecoration(
         color: C.surface,
         borderRadius: R.brLg,
         border: Border.all(color: C.line),
+        boxShadow: t == null ? null : Shadows.sm,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
+          Container(
+            decoration: t == null
+                ? null
+                : BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [t.wash, C.surface],
+                      stops: const [0, 0.85],
+                    ),
+                    borderRadius:
+                        const BorderRadius.vertical(top: Radius.circular(R.lg)),
+                  ),
             padding: const EdgeInsets.fromLTRB(Sp.x4, Sp.x3, Sp.x2, Sp.x3),
             child: Row(
               children: [
-                if (icon != null) ...[
+                if (icon != null && t != null) ...[
+                  ToneBadge(icon: icon!, tone: t),
+                  const SizedBox(width: Sp.x3),
+                ] else if (icon != null) ...[
                   Icon(icon, size: 18, color: C.ink600),
                   const SizedBox(width: Sp.x2),
                 ],
@@ -373,4 +412,154 @@ void showSnack(BuildContext context, String message, {bool bad = false}) {
         backgroundColor: bad ? C.bad600 : C.ink800,
       ),
     );
+}
+
+/// A white icon on a solid tone — the web's `.tile__icon` and the profile
+/// section icons.
+class ToneBadge extends StatelessWidget {
+  const ToneBadge({super.key, required this.icon, required this.tone, this.size = 34});
+
+  final IconData icon;
+  final Tone tone;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: tone.solid,
+        borderRadius: R.brMd,
+        boxShadow: const [
+          BoxShadow(color: Color(0x2E10151F), blurRadius: 12, offset: Offset(0, 4)),
+        ],
+      ),
+      alignment: Alignment.center,
+      child: Icon(icon, size: size * 0.53, color: Colors.white),
+    );
+  }
+}
+
+/// A gradient panel — the web's `.page-hero` ([Gradients.hero]) and
+/// `.profhead__band` ([Gradients.band]). Layers paint bottom to top, the way a
+/// CSS `background:` list stacks (where the base gradient is written last).
+class GradientBanner extends StatelessWidget {
+  const GradientBanner({
+    super.key,
+    required this.layers,
+    required this.child,
+    this.padding = const EdgeInsets.all(Sp.x5),
+    this.radius = R.brLg,
+  });
+
+  final List<Gradient> layers;
+  final Widget child;
+  final EdgeInsets padding;
+  final BorderRadius radius;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: radius,
+      child: Stack(
+        children: [
+          for (final g in layers)
+            Positioned.fill(
+              child: DecoratedBox(decoration: BoxDecoration(gradient: g)),
+            ),
+          Padding(padding: padding, child: child),
+        ],
+      ),
+    );
+  }
+}
+
+/// A coloured statistic tile — the web dashboard's `.tile.tile--{tone}`: a
+/// tinted wash, a solid icon badge, the label, then the figure in the tone's
+/// ink.
+class StatTile extends StatelessWidget {
+  const StatTile({
+    super.key,
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.tone,
+    this.note,
+    this.onTap,
+  });
+
+  final String label;
+
+  /// Null while loading, which draws a placeholder rather than a 0 that reads
+  /// like an answer.
+  final String? value;
+  final IconData icon;
+  final Tone tone;
+  final String? note;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: onTap != null,
+      label: value == null ? label : '$label: $value',
+      excludeSemantics: true,
+      child: Material(
+        color: tone.wash,
+        borderRadius: R.brLg,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: R.brLg,
+          child: Container(
+            padding: const EdgeInsets.all(Sp.x3 + 2),
+            decoration: BoxDecoration(
+              borderRadius: R.brLg,
+              border: Border.all(color: tone.border),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ToneBadge(icon: icon, tone: tone, size: 32),
+                const SizedBox(height: Sp.x3),
+                Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 12.5, color: C.ink600),
+                ),
+                const SizedBox(height: 4),
+                if (value == null)
+                  Container(
+                    width: 36,
+                    height: 22,
+                    decoration: BoxDecoration(color: tone.border, borderRadius: R.brSm),
+                  )
+                else
+                  Text(
+                    value!,
+                    style: TextStyle(
+                      fontFamily: Fonts.display,
+                      fontSize: 24,
+                      height: 1.1,
+                      fontWeight: FontWeight.w700,
+                      color: tone.ink,
+                    ),
+                  ),
+                if (note != null) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    note!,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 11.5, color: C.ink500),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }

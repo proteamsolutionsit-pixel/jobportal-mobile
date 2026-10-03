@@ -160,6 +160,24 @@ Future<void> settle(WidgetTester tester, [int frames = 14]) async {
   }
 }
 
+/// Scroll Home until [finder] is built and on screen.
+///
+/// Home opens on the greeting banner, the four stat tiles and the assistant
+/// card; the job rails sit below them, and a ListView does not build what is
+/// off screen, so a finder for a rail's card finds nothing until it is
+/// scrolled to — exactly as a person would have to.
+Future<void> scrollHomeTo(WidgetTester tester, Finder finder) async {
+  // Step down a screen at a time until it is built. Pass a plain finder, not
+  // `.first`: a first-finder throws while nothing matches, which is exactly
+  // the state this loop is waiting out.
+  for (var i = 0; i < 12 && finder.evaluate().isEmpty; i++) {
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, -300));
+    await settle(tester, 3);
+  }
+  await tester.ensureVisible(finder.first);
+  await settle(tester, 3);
+}
+
 void main() {
   final binding = TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -199,6 +217,7 @@ void main() {
       await settle(tester);
 
       expect(find.text('Hello, Asha'), findsOneWidget);
+      await scrollHomeTo(tester, find.text('Featured jobs'));
       expect(find.text('Featured jobs'), findsOneWidget);
     });
 
@@ -471,6 +490,7 @@ void main() {
         )
         ..onGet('/api/jobs/41/similar', (s) => s.reply(200, {'items': []}));
 
+      await scrollHomeTo(tester, find.text('Senior Accountant'));
       await tester.tap(find.text('Senior Accountant').first);
       await settle(tester);
 
@@ -490,6 +510,7 @@ void main() {
         )
         ..onGet('/api/jobs/41/similar', (s) => s.reply(200, {'items': []}));
 
+      await scrollHomeTo(tester, find.text('Senior Accountant'));
       await tester.tap(find.text('Senior Accountant').first);
       await settle(tester);
 
@@ -507,6 +528,7 @@ void main() {
         )
         ..onGet('/api/jobs/41/similar', (s) => s.reply(200, {'items': []}));
 
+      await scrollHomeTo(tester, find.text('Senior Accountant'));
       await tester.tap(find.text('Senior Accountant').first);
       await settle(tester);
 
@@ -540,6 +562,7 @@ void main() {
           }),
         );
 
+      await scrollHomeTo(tester, find.text('Senior Accountant'));
       await tester.tap(find.text('Senior Accountant').first);
       await settle(tester);
 
@@ -572,6 +595,7 @@ void main() {
           (s) => s.reply(409, {'detail': 'You have already applied to this job.'}),
         );
 
+      await scrollHomeTo(tester, find.text('Senior Accountant'));
       await tester.tap(find.text('Senior Accountant').first);
       await settle(tester);
       await tester.tap(find.text('Apply now'));
@@ -798,6 +822,203 @@ void main() {
 
       expect(find.text('Forgot password?'), findsOneWidget);
       expect(await h.client.hasStoredSession(), isFalse);
+    });
+  });
+
+  group('home dashboard', () {
+    testWidgets('the four tiles read the server totals, never a list length',
+        (tester) async {
+      final h = Harness()..stubCommon();
+      await h.signIn();
+      h.adapter
+        // One item on the page, 37 in total: the tile must say 37 (rule 5),
+        // and the shortlisted count — derived from that page — must admit it
+        // is a floor.
+        ..onGet(
+          '/api/applications/mine',
+          (s) => s.reply(200, {
+            'items': [
+              {
+                'id': 9,
+                'job_id': 41,
+                'status': 'interview',
+                'applied_at': '2026-08-20T10:00:00',
+              },
+            ],
+            'total': 37,
+            'page': 1,
+            'per_page': 100,
+          }),
+        )
+        ..onGet(
+          '/api/seeker/saved',
+          (s) => s.reply(200, {'items': [], 'total': 5, 'page': 1, 'per_page': 1}),
+        );
+
+      await tester.pumpWidget(h.app);
+      await settle(tester);
+
+      expect(find.text('Applications'), findsOneWidget);
+      expect(find.text('37'), findsOneWidget);
+      expect(find.text('1+'), findsOneWidget);
+      expect(find.text('5'), findsOneWidget);
+      expect(find.text('62%'), findsWidgets);
+      expect(find.text('Ask the assistant'), findsOneWidget);
+    });
+  });
+
+  group('assistant', () {
+    Future<void> openAssistant(WidgetTester tester, Harness h) async {
+      await tester.pumpWidget(h.app);
+      await settle(tester);
+      await tester.ensureVisible(find.text('Ask the assistant'));
+      await tester.tap(find.text('Ask the assistant'));
+      await settle(tester);
+    }
+
+    testWidgets('answers, and a follow-up carries the context back',
+        (tester) async {
+      final h = Harness()..stubCommon();
+      await h.signIn();
+      // What the app actually sends. Asserted on directly: the adapter's
+      // `data:` matcher was found to accept a follow-up with the context
+      // missing, so it proves nothing about the round trip by itself.
+      final asked = <Map<String, dynamic>>[];
+      h.dio.interceptors.add(InterceptorsWrapper(onRequest: (o, handler) {
+        if (o.path.endsWith('/api/assistant/ask') && o.data is Map) {
+          asked.add(Map<String, dynamic>.from(o.data as Map));
+        }
+        handler.next(o);
+      }));
+      h.adapter
+        ..onGet(
+          '/api/assistant/intents',
+          (s) => s.reply(200, {
+            'role': 'seeker',
+            'chips': ['Recommend jobs for me', 'Remote jobs'],
+            'intents': [],
+          }),
+        )
+        ..onPost(
+          '/api/assistant/ask',
+          (s) => s.reply(200, {
+            'question': 'Remote jobs',
+            'answer': {
+              'intent': 'find_jobs',
+              'text': 'One open job matches.',
+              'items': [
+                {'title': 'Senior Accountant', 'meta': 'Acme Ltd', 'url': '/jobs/41'},
+              ],
+              'facts': [
+                {'label': 'Open jobs', 'value': '1'},
+              ],
+              'chips': ['What about Pune?'],
+              'context': {
+                'intent': 'find_jobs',
+                'filters': {'work_mode': 'remote'},
+                'awaiting': null,
+              },
+            },
+          }),
+        );
+
+      await openAssistant(tester, h);
+      expect(find.text('Recommend jobs for me'), findsOneWidget);
+
+      await tester.tap(find.text('Remote jobs'));
+      await settle(tester);
+      expect(find.text('One open job matches.'), findsOneWidget);
+      expect(find.text('Open jobs'), findsOneWidget);
+      expect(find.text('Senior Accountant'), findsOneWidget);
+
+      // Matches ONLY if the previous turn's context comes back with the
+      // follow-up. Without it this route does not match, the request fails,
+      // and the error bubble appears instead of the answer. Registered now
+      // because the adapter keeps one handler per method and path.
+      h.adapter.onPost(
+          '/api/assistant/ask',
+          (s) => s.reply(200, {
+            'question': 'What about Pune?',
+            'answer': {
+              'intent': 'find_jobs',
+              'text': 'Nothing remote in Pune right now.',
+            },
+          }),
+          data: {
+            'question': 'What about Pune?',
+            'context': {
+              'intent': 'find_jobs',
+              'filters': {'work_mode': 'remote'},
+              'awaiting': null,
+            },
+          },
+        );
+
+      await tester.tap(find.text('What about Pune?'));
+      await settle(tester);
+      expect(find.text('Nothing remote in Pune right now.'), findsOneWidget);
+
+      // The first question goes alone; the follow-up carries the previous
+      // answer's context back exactly as it came.
+      expect(asked, hasLength(2));
+      expect(asked[0].containsKey('context'), isFalse);
+      expect(asked[1]['question'], 'What about Pune?');
+      expect(asked[1]['context'], {
+        'intent': 'find_jobs',
+        'filters': {'work_mode': 'remote'},
+        'awaiting': null,
+      });
+    });
+
+    testWidgets('a job in an answer opens that job', (tester) async {
+      final h = Harness()..stubCommon();
+      await h.signIn();
+      h.adapter
+        ..onGet('/api/assistant/intents',
+            (s) => s.reply(200, {'role': 'seeker', 'chips': ['Remote jobs']}))
+        ..onPost(
+          '/api/assistant/ask',
+          (s) => s.reply(200, {
+            'question': 'Remote jobs',
+            'answer': {
+              'intent': 'find_jobs',
+              'text': 'One open job matches.',
+              'items': [
+                {'title': 'Senior Accountant', 'url': '/jobs/41'},
+              ],
+            },
+          }),
+        )
+        ..onGet('/api/jobs/41', (s) => s.reply(200, _job()))
+        ..onGet('/api/jobs/41/state',
+            (s) => s.reply(200, {'job_id': 41, 'has_applied': false, 'is_saved': false}))
+        ..onGet('/api/jobs/41/similar', (s) => s.reply(200, {'items': []}));
+
+      await openAssistant(tester, h);
+      await tester.tap(find.text('Remote jobs'));
+      await settle(tester);
+      await tester.tap(find.text('Senior Accountant'));
+      await settle(tester);
+
+      expect(find.text('Own the monthly close.'), findsOneWidget);
+    });
+
+    testWidgets('a server failure says so instead of hanging', (tester) async {
+      final h = Harness()..stubCommon();
+      await h.signIn();
+      h.adapter
+        ..onGet('/api/assistant/intents',
+            (s) => s.reply(200, {'role': 'seeker', 'chips': ['Remote jobs']}))
+        ..onPost('/api/assistant/ask',
+            (s) => s.reply(500, {'detail': 'Something went wrong.'}));
+
+      await openAssistant(tester, h);
+      await tester.tap(find.text('Remote jobs'));
+      await settle(tester);
+
+      expect(find.byIcon(Icons.error_outline_rounded), findsOneWidget);
+      // The box is usable again: not stuck on "Thinking…".
+      expect(find.text('Thinking…'), findsNothing);
     });
   });
 }

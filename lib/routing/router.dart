@@ -13,6 +13,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../features/jobseeker/applications/applications_screen.dart';
+import '../features/jobseeker/assistant/assistant_screen.dart';
 import '../features/jobseeker/companies/companies_screen.dart';
 import '../features/jobseeker/companies/company_detail_screen.dart';
 import '../features/jobseeker/authentication/auth_controller.dart';
@@ -34,6 +35,7 @@ import '../features/jobseeker/saved_jobs/saved_jobs_screen.dart';
 import '../features/jobseeker/settings/alerts_screen.dart';
 import '../features/jobseeker/settings/notification_prefs_screen.dart';
 import '../features/jobseeker/settings/settings_screen.dart';
+import '../data/repositories/jobs_repository.dart';
 import '../data/repositories/seeker_repository.dart';
 import 'shell.dart';
 import 'splash.dart';
@@ -61,6 +63,10 @@ abstract final class Routes {
 
   /// Public — a signed-out reader can browse employers, as with jobs.
   static const companies = '/companies';
+
+  /// The assistant — signed-in only; it answers about the reader's own
+  /// profile and applications.
+  static const assistant = '/assistant';
 
   static String job(int id) => '/jobs/$id';
   static String history(HistoryKind kind) => '/profile/history/${kind.name}';
@@ -177,6 +183,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(
+        path: Routes.assistant,
+        parentNavigatorKey: rootKey,
+        builder: (_, _) => const AssistantScreen(),
+      ),
+      GoRoute(
         path: Routes.notifications,
         parentNavigatorKey: rootKey,
         builder: (_, _) => const NotificationsScreen(),
@@ -261,6 +272,60 @@ String routeForNotificationLink(String? link) {
   if (path.startsWith('/jobs')) return Routes.jobs;
 
   return Routes.notifications;
+}
+
+/// Where a link inside an assistant answer goes, or null for "stay here".
+///
+/// The same rule as [routeForNotificationLink] — a server string becomes a
+/// known route and is never opened as a URL — over the assistant's wider
+/// vocabulary (`assistant.py` links to alerts, viewers, companies and the CV
+/// upload too). Anything else, including the web's recruiter and admin panels,
+/// is refused rather than guessed at: null means the tap does nothing.
+String? routeForAssistantLink(String? link) {
+  if (link == null || link.isEmpty || link.contains('://')) return null;
+  final path = (link.startsWith('/') ? link : '/$link').split('?').first.split('#').first;
+
+  final job = RegExp(r'^/jobs/(\d+)$').firstMatch(path);
+  if (job != null) return Routes.job(int.parse(job.group(1)!));
+  final company = RegExp(r'^/companies/(\d+)$').firstMatch(path);
+  if (company != null) return '${Routes.companies}/${company.group(1)}';
+
+  return switch (path) {
+    '/jobs' => Routes.jobs,
+    '/companies' => Routes.companies,
+    '/seeker/applications' => Routes.applications,
+    '/seeker/saved' => Routes.saved,
+    '/seeker/profile' => Routes.profile,
+    '/seeker/alerts' => Routes.alerts,
+    // "Who viewed me" and suggested jobs live on Settings and Home here.
+    '/seeker/viewers' => Routes.settings,
+    '/seeker/suggested' || '/seeker' => Routes.home,
+    '/upload-resume' => Routes.importCv,
+    _ => null,
+  };
+}
+
+/// The search an assistant `/jobs?…` link describes, as a [JobQuery], so the
+/// Jobs tab opens on the same results the answer counted.
+///
+/// The parameter names are the portal's (`assistant.py::jobs_url`). Two are
+/// left out on purpose: `track` has no filter in this app, and `min_salary`
+/// carries no unit in the link — a lakh-for-rupee guess would quietly empty the
+/// list, which is worse than a broader one.
+JobQuery? jobQueryForAssistantLink(String? link) {
+  if (link == null || link.contains('://')) return null;
+  final uri = Uri.tryParse(link.startsWith('/') ? link : '/$link');
+  if (uri == null || uri.path != '/jobs' || uri.queryParameters.isEmpty) return null;
+  final p = uri.queryParameters;
+  String? one(String k) => (p[k] ?? '').trim().isEmpty ? null : p[k]!.trim();
+
+  return JobQuery(
+    q: one('q'),
+    locations: [?one('location')],
+    workModes: [?one('work_mode')],
+    jobTypes: [?one('job_type')],
+    expMin: int.tryParse(one('exp') ?? ''),
+  );
 }
 
 /// Rebuilds the router when the session changes.

@@ -36,7 +36,13 @@ library;
 /// `ROLES`. This app is the **seeker** client; the other three exist so that a
 /// signed-in user of the wrong kind can be told so rather than shown a broken
 /// screen.
-const roleValues = <String>['admin', 'recruiter', 'recruiter_agent', 'seeker'];
+const roleValues = <String>[
+  'admin',
+  'recruiter',
+  'recruiter_agent',
+  'seeker',
+  'resume_uploader',
+];
 
 /// `USER_STATUSES`. Only `active` may hold a session — `current_user_optional`
 /// returns null for anything else, so the app sees a 401, not a status.

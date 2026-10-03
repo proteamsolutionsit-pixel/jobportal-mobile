@@ -33,20 +33,47 @@ class JobCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final company = job.company?.name ?? 'Confidential';
+    // The employer's tone, hashed from the same text the web hashes
+    // (`toneOf(job.company_name ?? '')` in JobCard.tsx), so the accent bar and
+    // the logo square agree here and on the site.
+    final tone = Tones.of(toneOf(job.company?.name ?? ''));
 
     return Material(
       color: C.surface,
       borderRadius: R.brLg,
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
         borderRadius: R.brLg,
         child: Container(
-          padding: const EdgeInsets.all(Sp.x4),
           decoration: BoxDecoration(
             borderRadius: R.brLg,
             border: Border.all(color: C.line),
           ),
-          child: Column(
+          // `.jobcard::before`: a 4px bar down the leading edge. A Stack rather
+          // than a left-only border, because Flutter refuses a border of mixed
+          // colours on a rounded box.
+          child: Stack(
+            children: [
+              Positioned(
+                left: 0,
+                top: 0,
+                bottom: 0,
+                child: Container(width: 4, color: tone.solid),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(Sp.x4 + 4, Sp.x4, Sp.x4, Sp.x4),
+                child: _body(context, company),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _body(BuildContext context, String company) {
+    return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
@@ -178,9 +205,6 @@ class JobCard extends StatelessWidget {
                 ),
               ],
             ],
-          ),
-        ),
-      ),
     );
   }
 }

@@ -66,6 +66,7 @@ class ProfileScreen extends ConsumerWidget {
               SectionCard(
                 title: 'About you',
                 icon: Icons.person_outline_rounded,
+                tone: Tones.brand,
                 actionLabel: 'Edit',
                 onAction: () => showBasicsSheet(context, ref, p),
                 child: Column(
@@ -95,6 +96,7 @@ class ProfileScreen extends ConsumerWidget {
               SectionCard(
                 title: 'Current role',
                 icon: Icons.work_outline_rounded,
+                tone: Tones.violet,
                 actionLabel: 'Edit',
                 onAction: () => showCareerSheet(context, ref, p),
                 child: Column(
@@ -116,6 +118,7 @@ class ProfileScreen extends ConsumerWidget {
               SectionCard(
                 title: 'Skills',
                 icon: Icons.bolt_outlined,
+                tone: Tones.amber,
                 actionLabel: p.skills.isEmpty ? 'Add' : 'Edit',
                 onAction: () => context.push(Routes.skills),
                 child: p.skills.isEmpty
@@ -128,8 +131,9 @@ class ProfileScreen extends ConsumerWidget {
                         spacing: Sp.x2,
                         runSpacing: Sp.x2,
                         children: [
-                          for (final s in p.skills)
-                            Tag(s.name, background: C.brand50, foreground: C.brand700),
+                          // Each skill in its own tone — the same one it
+                          // wears on the web, via toneOf().
+                          for (final s in p.skills) Tag.tone(s.name),
                         ],
                       ),
               ),
@@ -138,18 +142,21 @@ class ProfileScreen extends ConsumerWidget {
               _HistoryCard(
                 kind: HistoryKind.employment,
                 icon: Icons.business_center_outlined,
+                tone: Tones.teal,
                 empty: 'Add the roles you have held.',
               ),
               const SizedBox(height: Sp.x3),
               _HistoryCard(
                 kind: HistoryKind.education,
                 icon: Icons.school_outlined,
+                tone: Tones.sky,
                 empty: 'Add your qualifications.',
               ),
               const SizedBox(height: Sp.x3),
               _HistoryCard(
                 kind: HistoryKind.certifications,
                 icon: Icons.workspace_premium_outlined,
+                tone: Tones.pink,
                 empty: 'Add any certifications you hold.',
               ),
               const SizedBox(height: Sp.x3),
@@ -160,6 +167,7 @@ class ProfileScreen extends ConsumerWidget {
               SectionCard(
                 title: 'Preferences',
                 icon: Icons.tune_rounded,
+                tone: Tones.brand,
                 actionLabel: 'Edit',
                 onAction: () => showPreferencesSheet(context, ref, p),
                 child: Column(
@@ -193,17 +201,27 @@ class _Header extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Row(
+    // `.profhead__band`: the web profile's multi-colour header.
+    return GradientBanner(
+      layers: Gradients.band,
+      padding: const EdgeInsets.all(Sp.x4),
+      child: Row(
       children: [
         Stack(
           children: [
-            Avatar(path: profile.photoPath, name: profile.fullName, size: 68),
+            // A white ring, so the photo sits on the band the way it does on
+            // the web rather than dissolving into it.
+            Container(
+              padding: const EdgeInsets.all(3),
+              decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+              child: Avatar(path: profile.photoPath, name: profile.fullName, size: 68),
+            ),
             Positioned(
               right: 0,
               bottom: 0,
               child: Material(
-                color: C.brand500,
-                shape: const CircleBorder(),
+                color: C.cta500,
+                shape: const CircleBorder(side: BorderSide(color: Colors.white, width: 2)),
                 child: InkWell(
                   customBorder: const CircleBorder(),
                   onTap: () => uploadPhoto(context, ref),
@@ -222,9 +240,20 @@ class _Header extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(profile.fullName, style: Theme.of(context).textTheme.titleLarge),
+              Text(
+                profile.fullName,
+                style: const TextStyle(
+                  fontFamily: Fonts.display,
+                  fontSize: 19,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                ),
+              ),
               const SizedBox(height: 2),
-              Text(profile.email, style: Theme.of(context).textTheme.bodySmall),
+              Text(
+                profile.email,
+                style: TextStyle(fontSize: 12.5, color: Colors.white.withValues(alpha: 0.88)),
+              ),
               const SizedBox(height: Sp.x2),
               // The badge means something now: registration leaves
               // email_verified_at NULL, and signing in with an emailed code is
@@ -251,6 +280,7 @@ class _Header extends ConsumerWidget {
           ),
         ),
       ],
+      ),
     );
   }
 }
@@ -294,7 +324,7 @@ class _CompletenessBar extends StatelessWidget {
                   fontFamily: Fonts.display,
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
-                  color: percent >= 80 ? C.ok600 : C.brand700,
+                  color: percent >= 80 ? C.ok600 : Tones.teal.ink,
                 ),
               ),
             ],
@@ -305,9 +335,9 @@ class _CompletenessBar extends StatelessWidget {
             child: LinearProgressIndicator(
               value: percent / 100,
               minHeight: 6,
-              backgroundColor: C.surfaceSunk,
+              backgroundColor: Tones.teal.wash,
               valueColor:
-                  AlwaysStoppedAnimation(percent >= 80 ? C.ok500 : C.brand500),
+                  AlwaysStoppedAnimation(percent >= 80 ? C.ok500 : Tones.teal.solid),
             ),
           ),
         ],
@@ -320,11 +350,13 @@ class _HistoryCard extends ConsumerWidget {
   const _HistoryCard({
     required this.kind,
     required this.icon,
+    required this.tone,
     required this.empty,
   });
 
   final HistoryKind kind;
   final IconData icon;
+  final Tone tone;
   final String empty;
 
   @override
@@ -334,6 +366,7 @@ class _HistoryCard extends ConsumerWidget {
     return SectionCard(
       title: kind.label,
       icon: icon,
+      tone: tone,
       actionLabel: 'Manage',
       onAction: () => context.push(Routes.history(kind)),
       child: entries.when(
@@ -357,9 +390,9 @@ class _HistoryCard extends ConsumerWidget {
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Padding(
-                        padding: EdgeInsets.only(top: 5),
-                        child: Icon(Icons.circle, size: 6, color: C.ink400),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 5),
+                        child: Icon(Icons.circle, size: 7, color: tone.solid),
                       ),
                       const SizedBox(width: Sp.x3),
                       Expanded(
@@ -409,6 +442,7 @@ class _LinksCard extends ConsumerWidget {
     return SectionCard(
       title: 'Online presence',
       icon: Icons.link_rounded,
+      tone: Tones.lime,
       actionLabel: 'Manage',
       onAction: () => context.push(Routes.links),
       child: links.when(
@@ -456,6 +490,7 @@ class _VisibilityCard extends ConsumerWidget {
     return SectionCard(
       title: 'Visibility',
       icon: Icons.visibility_outlined,
+      tone: Tones.ok,
       padding: EdgeInsets.zero,
       // Material between the card's coloured Container and the tiles: a
       // ListTile inside a DecoratedBox that paints a background asserts,

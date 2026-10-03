@@ -83,6 +83,7 @@ class _ResumeCardState extends ConsumerState<ResumeCard> {
     return SectionCard(
       title: 'CV / Resume',
       icon: Icons.description_outlined,
+      tone: Tones.sky,
       actionLabel: has ? 'Replace' : null,
       onAction: has && _progress == null ? _upload : null,
       child: Column(
