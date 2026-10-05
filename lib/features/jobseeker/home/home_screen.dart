@@ -75,7 +75,11 @@ class HomeScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(brand?.name ?? 'JobPortal'),
+        // The logo, as the website's header shows it.
+        title: Semantics(
+          label: brand?.name ?? 'JobsFlood',
+          child: const BrandWordmark(height: 30),
+        ),
         actions: const [NotificationBell(), SizedBox(width: Sp.x1)],
       ),
       body: RefreshIndicator(

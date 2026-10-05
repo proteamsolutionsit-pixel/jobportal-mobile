@@ -29,26 +29,31 @@ class AppShell extends ConsumerWidget {
   final String location;
   final Widget child;
 
-  static const _tabs = <({String path, IconData icon, IconData active, String label})>[
-    (path: Routes.home, icon: Icons.home_outlined, active: Icons.home_rounded, label: 'Home'),
-    (path: Routes.jobs, icon: Icons.search_outlined, active: Icons.search_rounded, label: 'Jobs'),
+  /// Each tab wears its own colour, like the web's coloured menu icons —
+  /// Home brand blue, Jobs violet, Applied green, Saved pink, Profile teal.
+  static const _tabs = <({String path, IconData icon, IconData active, String label, int tone})>[
+    (path: Routes.home, icon: Icons.home_outlined, active: Icons.home_rounded, label: 'Home', tone: 1),
+    (path: Routes.jobs, icon: Icons.travel_explore_rounded, active: Icons.travel_explore_rounded, label: 'Jobs', tone: 2),
     (
       path: Routes.applications,
-      icon: Icons.description_outlined,
-      active: Icons.description_rounded,
-      label: 'Applied'
+      icon: Icons.task_outlined,
+      active: Icons.task_rounded,
+      label: 'Applied',
+      tone: 6,
     ),
     (
       path: Routes.saved,
       icon: Icons.bookmark_outline_rounded,
       active: Icons.bookmark_rounded,
-      label: 'Saved'
+      label: 'Saved',
+      tone: 5,
     ),
     (
       path: Routes.profile,
       icon: Icons.person_outline_rounded,
       active: Icons.person_rounded,
-      label: 'Profile'
+      label: 'Profile',
+      tone: 3,
     ),
   ];
 
@@ -69,20 +74,40 @@ class AppShell extends ConsumerWidget {
       },
       child: Scaffold(
         body: SafeArea(top: false, child: child),
-        bottomNavigationBar: NavigationBar(
-          selectedIndex: _index,
-          onDestinationSelected: (i) {
-            if (i == _index) return;
-            context.go(_tabs[i].path);
-          },
-          destinations: [
-            for (var i = 0; i < _tabs.length; i++)
-              NavigationDestination(
-                icon: Icon(_tabs[i].icon),
-                selectedIcon: Icon(_tabs[i].active),
-                label: _tabs[i].label,
-              ),
-          ],
+        bottomNavigationBar: NavigationBarTheme(
+          // copyWith, not a fresh theme: a bare NavigationBarThemeData
+          // replaces the app's, and the bar lost its white ground and height.
+          data: Theme.of(context).navigationBarTheme.copyWith(
+            indicatorColor: Tones.of(_tabs[_index].tone).wash,
+            labelTextStyle: WidgetStateProperty.resolveWith((states) {
+              final selected = states.contains(WidgetState.selected);
+              return TextStyle(
+                fontFamily: Fonts.body,
+                fontSize: 11.5,
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                color: selected ? Tones.of(_tabs[_index].tone).ink : C.ink500,
+              );
+            }),
+          ),
+          child: NavigationBar(
+            selectedIndex: _index,
+            onDestinationSelected: (i) {
+              if (i == _index) return;
+              context.go(_tabs[i].path);
+            },
+            destinations: [
+              for (var i = 0; i < _tabs.length; i++)
+                NavigationDestination(
+                  // Coloured even when not selected, a little softer.
+                  icon: Icon(
+                    _tabs[i].icon,
+                    color: Tones.of(_tabs[i].tone).solid.withValues(alpha: 0.7),
+                  ),
+                  selectedIcon: Icon(_tabs[i].active, color: Tones.of(_tabs[i].tone).solid),
+                  label: _tabs[i].label,
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -105,7 +130,16 @@ class NotificationBell extends ConsumerWidget {
         icon: Stack(
           clipBehavior: Clip.none,
           children: [
-            const Icon(Icons.notifications_none_rounded),
+            Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                color: Tones.amber.wash,
+                borderRadius: R.brMd,
+                border: Border.all(color: Tones.amber.border),
+              ),
+              child: Icon(Icons.notifications_rounded, size: 20, color: Tones.amber.solid),
+            ),
             if (unread > 0)
               Positioned(
                 right: -3,

@@ -101,6 +101,15 @@ Future<void> _loadFonts() async {
 }
 
 Future<void> _snap(WidgetTester tester, String name) async {
+  // Let every image on screen finish decoding first: asset images load
+  // asynchronously, and a capture taken before that showed a blank where the
+  // logo is.
+  await tester.runAsync(() async {
+    for (final el in find.byType(Image).evaluate()) {
+      await precacheImage((el.widget as Image).image, el);
+    }
+  });
+  await tester.pump();
   final boundary = tester.renderObject<RenderRepaintBoundary>(
     find.byKey(const ValueKey('snap')),
   );
@@ -373,7 +382,7 @@ void main() {
 
     await tester.tap(find.text('Profile').last);
     await _frames(tester, 20);
-    await tester.tap(find.byIcon(Icons.settings_outlined));
+    await tester.tap(find.byIcon(Icons.settings_rounded));
     await _frames(tester, 25);
     await _snap(tester, '10-settings');
 
@@ -424,7 +433,7 @@ void main() {
     await tester.pageBack();
     await _frames(tester);
 
-    await tester.tap(find.byIcon(Icons.notifications_none_rounded).first);
+    await tester.tap(find.byIcon(Icons.notifications_rounded).first);
     await _frames(tester, 20);
     await _snap(tester, '17-notifications');
     await tester.pageBack();

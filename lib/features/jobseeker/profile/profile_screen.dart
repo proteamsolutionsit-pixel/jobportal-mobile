@@ -35,13 +35,13 @@ class ProfileScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('My profile'),
+        title: const BrandTitle('My profile'),
         actions: [
           const NotificationBell(),
           IconButton(
             tooltip: 'Settings',
             onPressed: () => context.push(Routes.settings),
-            icon: const Icon(Icons.settings_outlined),
+            icon: ToneBadge(icon: Icons.settings_rounded, tone: Tones.violet, size: 34),
           ),
         ],
       ),

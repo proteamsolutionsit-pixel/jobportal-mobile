@@ -127,19 +127,27 @@ class JobCard extends StatelessWidget {
                 spacing: Sp.x2,
                 runSpacing: Sp.x2,
                 children: [
+                  // Each fact in its own colour — the same ones the job detail
+                  // tiles use: location sky, experience violet, mode teal.
                   Tag(
                     job.location.isEmpty ? 'Location not stated' : job.location,
-                    icon: Icons.location_on_outlined,
+                    icon: Icons.place_rounded,
+                    background: Tones.sky.wash,
+                    foreground: Tones.sky.ink,
                   ),
                   Tag(
                     experienceRangeLabel(job.minExperience, job.maxExperience),
-                    icon: Icons.work_history_outlined,
+                    icon: Icons.workspace_premium_rounded,
+                    background: Tones.violet.wash,
+                    foreground: Tones.violet.ink,
                   ),
                   // work_mode: 'field' renders as "On the Road / Field Work",
                   // which is what people call it — not the column's value.
                   Tag(
                     labelFor(workModeLabels, job.workMode),
-                    icon: Icons.location_city_outlined,
+                    icon: Icons.apartment_rounded,
+                    background: Tones.teal.wash,
+                    foreground: Tones.teal.ink,
                   ),
                 ],
               ),
@@ -161,10 +169,10 @@ class JobCard extends StatelessWidget {
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
-                        color: C.ink900,
+                        color: Tones.ok.ink,
                       ),
                     ),
                   ),

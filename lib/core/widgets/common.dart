@@ -737,3 +737,50 @@ class FactTile extends StatelessWidget {
     );
   }
 }
+
+/// The JobsFlood wordmark — the logo production serves at /api/branding
+/// (uploads/logos/site_198832eec4de.png), bundled at app size so it shows
+/// before the network answers and on a bad connection.
+class BrandWordmark extends StatelessWidget {
+  const BrandWordmark({super.key, this.height = 30});
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: 'JobsFlood',
+      image: true,
+      child: Image.asset(
+        'assets/images/jobsflood-wordmark.png',
+        height: height,
+        fit: BoxFit.contain,
+        filterQuality: FilterQuality.medium,
+      ),
+    );
+  }
+}
+
+/// The round JF emblem from the same logo, beside a screen's title, so the
+/// brand is on every main tab and not only on Home.
+class BrandTitle extends StatelessWidget {
+  const BrandTitle(this.title, {super.key});
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Image.asset(
+          'assets/images/jobsflood-emblem.png',
+          width: 28,
+          height: 28,
+          filterQuality: FilterQuality.medium,
+          excludeFromSemantics: true,
+        ),
+        const SizedBox(width: Sp.x2 + 2),
+        Flexible(child: Text(title, overflow: TextOverflow.ellipsis)),
+      ],
+    );
+  }
+}

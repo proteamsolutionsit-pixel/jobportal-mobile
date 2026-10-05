@@ -48,7 +48,7 @@ class _ApplicationsScreenState extends ConsumerState<ApplicationsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('My applications'),
+        title: const BrandTitle('My applications'),
         actions: const [NotificationBell(), SizedBox(width: Sp.x1)],
       ),
       body: applications.when(

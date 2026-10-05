@@ -29,7 +29,7 @@ class SavedJobsScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Saved jobs'),
+        title: const BrandTitle('Saved jobs'),
         actions: const [NotificationBell(), SizedBox(width: Sp.x1)],
       ),
       body: saved.when(

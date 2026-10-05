@@ -1,6 +1,8 @@
 /// Job search.
 library;
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -10,6 +12,7 @@ import '../../../core/providers.dart';
 import '../../../core/theme/tokens.dart';
 import '../../../core/utils/format.dart';
 import '../../../core/widgets/autosuggest.dart';
+import '../../../core/widgets/common.dart';
 import '../../../core/widgets/states.dart';
 import '../../../routing/router.dart';
 import '../../../routing/shell.dart';
@@ -28,15 +31,35 @@ class _JobsScreenState extends ConsumerState<JobsScreen> {
   final _search = TextEditingController();
   final _scroll = ScrollController();
 
+  /// Search as you type. Results used to change only on the keyboard's
+  /// search key, so typing and tapping away searched nothing and the tab
+  /// looked broken. Debounced, and only from two letters (or an empty box),
+  /// so a word is not searched letter by letter — the API's LIKE path is a
+  /// scan on a miss, which is exactly what a half-typed word is.
+  Timer? _typing;
+
+  void _onTyped() {
+    _typing?.cancel();
+    final text = _search.text.trim();
+    if (text.isNotEmpty && text.length < 2) return;
+    _typing = Timer(const Duration(milliseconds: 600), () {
+      if (!mounted) return;
+      if ((ref.read(jobQueryProvider).q ?? '') != text) _submitSearch(text);
+    });
+  }
+
   @override
   void initState() {
     super.initState();
     _search.text = ref.read(jobQueryProvider).q ?? '';
+    _search.addListener(_onTyped);
     _scroll.addListener(_onScroll);
   }
 
   @override
   void dispose() {
+    _typing?.cancel();
+    _search.removeListener(_onTyped);
     _scroll.removeListener(_onScroll);
     _scroll.dispose();
     _search.dispose();
@@ -54,8 +77,9 @@ class _JobsScreenState extends ConsumerState<JobsScreen> {
   }
 
   void _submitSearch(String value) {
+    _typing?.cancel();
     ref.read(jobQueryProvider.notifier).state =
-        ref.read(jobQueryProvider).copyWith(q: value);
+        ref.read(jobQueryProvider).copyWith(q: value.trim());
   }
 
   @override
@@ -65,7 +89,7 @@ class _JobsScreenState extends ConsumerState<JobsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Find jobs'),
+        title: const BrandTitle('Find jobs'),
         actions: const [NotificationBell(), SizedBox(width: Sp.x1)],
       ),
       body: Column(

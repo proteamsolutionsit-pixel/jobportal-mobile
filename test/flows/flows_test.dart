@@ -785,7 +785,7 @@ void main() {
 
       expect(find.text('12'), findsOneWidget);
 
-      await tester.tap(find.byIcon(Icons.notifications_none_rounded).first);
+      await tester.tap(find.byIcon(Icons.notifications_rounded).first);
       await settle(tester);
 
       expect(find.text('You were shortlisted'), findsOneWidget);
@@ -812,7 +812,7 @@ void main() {
       await settle(tester);
       await tester.tap(find.text('Profile'));
       await settle(tester);
-      await tester.tap(find.byIcon(Icons.settings_outlined));
+      await tester.tap(find.byIcon(Icons.settings_rounded));
       await settle(tester);
 
       await tester.tap(find.text('Sign out'));
@@ -1019,6 +1019,68 @@ void main() {
       expect(find.byIcon(Icons.error_outline_rounded), findsOneWidget);
       // The box is usable again: not stuck on "Thinking…".
       expect(find.text('Thinking…'), findsNothing);
+    });
+  });
+
+  group('job search box', () {
+    /// Every `q` the app sends to /api/jobs, in order.
+    Future<(Harness, List<String?>)> onJobs(WidgetTester tester) async {
+      final h = Harness()..stubCommon();
+      await h.signIn();
+      final sent = <String?>[];
+      h.dio.interceptors.add(InterceptorsWrapper(onRequest: (o, handler) {
+        if (o.path.endsWith('/api/jobs')) sent.add(o.queryParameters['q'] as String?);
+        handler.next(o);
+      }));
+      h.adapter
+        ..onGet('/api/jobs', (s) => s.reply(200, {
+              'items': [_job()], 'total': 1, 'page': 1, 'per_page': 20,
+            }))
+        ..onGet('/api/suggest/titles', (s) => s.reply(200, {'items': []}));
+      await tester.pumpWidget(h.app);
+      await settle(tester);
+      await tester.tap(find.text('Jobs'));
+      await settle(tester);
+      return (h, sent);
+    }
+
+    testWidgets('typing searches without pressing the keyboard key', (tester) async {
+      // Results used to change only on the keyboard's search key, so typing
+      // and tapping away searched nothing and the tab looked broken.
+      final (_, sent) = await onJobs(tester);
+      await tester.enterText(find.byType(TextField).first, 'accountant');
+      await tester.pump(const Duration(milliseconds: 700));
+      await settle(tester);
+      expect(sent, contains('accountant'));
+    });
+
+    testWidgets('one letter does not search; the word does, once', (tester) async {
+      final (_, sent) = await onJobs(tester);
+      await tester.enterText(find.byType(TextField).first, 'a');
+      await tester.pump(const Duration(milliseconds: 700));
+      await tester.enterText(find.byType(TextField).first, 'acc');
+      await tester.pump(const Duration(milliseconds: 200));
+      await tester.enterText(find.byType(TextField).first, 'accountant');
+      await tester.pump(const Duration(milliseconds: 700));
+      await settle(tester);
+      expect(sent.where((q) => q == 'a'), isEmpty);
+      expect(sent.where((q) => q == 'acc'), isEmpty); // superseded mid-typing
+      expect(sent.where((q) => q == 'accountant'), hasLength(1));
+    });
+
+    testWidgets('clearing the box shows every job again', (tester) async {
+      // The clear button used to empty the field and leave the results
+      // filtered by the old words.
+      final (_, sent) = await onJobs(tester);
+      await tester.enterText(find.byType(TextField).first, 'accountant');
+      // The keyboard's search key: a search that happened under every
+      // version of the app, so clearing has something real to undo.
+      await tester.testTextInput.receiveAction(TextInputAction.search);
+      await settle(tester);
+      expect(sent.last, 'accountant');
+      await tester.tap(find.byTooltip('Clear'));
+      await settle(tester);
+      expect(sent.last, isNull); // no q at all: the unfiltered listing
     });
   });
 }

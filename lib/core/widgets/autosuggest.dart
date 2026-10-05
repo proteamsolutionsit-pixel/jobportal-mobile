@@ -87,6 +87,9 @@ class _AutosuggestState extends State<Autosuggest> {
   void _onChanged() {
     _debounce?.cancel();
     final term = widget.controller.text.trim();
+    // Redraw so the clear button appears and disappears with the text; it
+    // used to read controller.text only when something else rebuilt.
+    if (mounted) setState(() {});
 
     if (term.length < 2) {
       _close();
@@ -242,6 +245,9 @@ class _AutosuggestState extends State<Autosuggest> {
                   onPressed: () {
                     widget.controller.clear();
                     _close();
+                    // Clearing is a search for everything. It used to empty
+                    // the box and leave the results filtered by the old words.
+                    widget.onSubmitted?.call('');
                   },
                 ),
         ),
