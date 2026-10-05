@@ -2,9 +2,11 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/config/environment.dart';
 import '../../../core/constants/enums.dart';
 import '../../../core/errors/api_exception.dart';
 import '../../../core/providers.dart';
@@ -33,9 +35,15 @@ class JobDetailScreen extends ConsumerWidget {
         title: const Text('Job details'),
         actions: [
           IconButton(
-            tooltip: 'Share',
-            onPressed: () => showSnack(context, 'Link copied to the job page.'),
-            icon: const Icon(Icons.ios_share_rounded, size: 20),
+            tooltip: 'Copy link',
+            // The web job page lives on the same origin as the API. This used
+            // to say "Link copied" and copy nothing.
+            onPressed: () async {
+              final base = Env.apiBaseUrl.replaceAll(RegExp(r'/+$'), '');
+              await Clipboard.setData(ClipboardData(text: '$base/jobs/$jobId'));
+              if (context.mounted) showSnack(context, 'Job link copied.');
+            },
+            icon: const Icon(Icons.link_rounded, size: 22),
           ),
         ],
       ),
@@ -70,103 +78,85 @@ class _JobBody extends ConsumerWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(Sp.x4, Sp.x4, Sp.x4, Sp.x6),
       children: [
+        _Hero(job: job, company: company),
+        const SizedBox(height: Sp.x4),
+
+        // The four things people decide on, each on its own tile.
         Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            CompanyLogo(path: job.company?.logoPath, name: company, size: 56),
+            Expanded(
+              child: FactTile(
+                label: 'Salary',
+                // Negotiable and hidden stay distinct; a monthly figure is
+                // never rendered in lakhs.
+                value: payLabel(
+                  job.minSalary,
+                  job.maxSalary,
+                  hidden: job.hideSalary,
+                  period: job.salaryPeriod,
+                  mode: job.salaryMode,
+                ),
+                icon: Icons.payments_rounded,
+                tone: Tones.ok,
+              ),
+            ),
             const SizedBox(width: Sp.x3),
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(job.title, style: Theme.of(context).textTheme.headlineSmall),
-                  const SizedBox(height: Sp.x1),
-                  Text(company, style: Theme.of(context).textTheme.bodyMedium),
-                ],
+              child: FactTile(
+                label: 'Experience',
+                value: experienceRangeLabel(job.minExperience, job.maxExperience),
+                icon: Icons.workspace_premium_rounded,
+                tone: Tones.violet,
               ),
             ),
           ],
         ),
-        const SizedBox(height: Sp.x4),
-
+        const SizedBox(height: Sp.x3),
+        Row(
+          children: [
+            Expanded(
+              child: FactTile(
+                label: 'Location',
+                value: job.location,
+                icon: Icons.place_rounded,
+                tone: Tones.sky,
+              ),
+            ),
+            const SizedBox(width: Sp.x3),
+            Expanded(
+              child: FactTile(
+                label: 'Work mode',
+                value: labelFor(workModeLabels, job.workMode),
+                icon: Icons.apartment_rounded,
+                tone: Tones.teal,
+              ),
+            ),
+          ],
+        ),
+        if (job.hideSalary || job.isNegotiable) ...[
+          const SizedBox(height: Sp.x2),
+          Text(
+            job.hideSalary
+                ? 'This employer has chosen not to publish the salary.'
+                : 'Salary is open to discussion.',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ],
+        const SizedBox(height: Sp.x3),
         Wrap(
           spacing: Sp.x2,
           runSpacing: Sp.x2,
           children: [
-            Tag(job.location, icon: Icons.location_on_outlined),
-            Tag(
-              experienceRangeLabel(job.minExperience, job.maxExperience),
-              icon: Icons.work_history_outlined,
-            ),
-            Tag(labelFor(workModeLabels, job.workMode),
-                icon: Icons.location_city_outlined),
-            for (final t in job.jobTypes)
-              Tag(
-                labelFor(jobTypeLabels, t),
-                background: C.brand50,
-                foreground: C.brand700,
-              ),
-            if (!job.isOpen)
-              const Tag(
-                'Closed',
-                icon: Icons.lock_outline_rounded,
-                background: C.warn50,
-                foreground: C.warn600,
-              ),
+            for (final t in job.jobTypes) Tag.tone(labelFor(jobTypeLabels, t)),
+            Tag.tone(labelFor(skillLevelLabels, job.skillLevel)),
           ],
-        ),
-        const SizedBox(height: Sp.x4),
-
-        Container(
-          padding: const EdgeInsets.all(Sp.x4),
-          decoration: BoxDecoration(
-            color: C.brand50,
-            borderRadius: R.brLg,
-          ),
-          child: Row(
-            children: [
-              const Icon(Icons.payments_outlined, size: 20, color: C.brand600),
-              const SizedBox(width: Sp.x3),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      // Negotiable and hidden stay distinct; a monthly figure
-                      // is never rendered in lakhs.
-                      payLabel(
-                        job.minSalary,
-                        job.maxSalary,
-                        hidden: job.hideSalary,
-                        period: job.salaryPeriod,
-                        mode: job.salaryMode,
-                      ),
-                      style: const TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w700,
-                        color: C.ink900,
-                      ),
-                    ),
-                    if (job.hideSalary)
-                      Text(
-                        'This employer has chosen not to publish the salary.',
-                        style: Theme.of(context).textTheme.bodySmall,
-                      )
-                    else if (job.isNegotiable)
-                      Text(
-                        'Open to discussion.',
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                  ],
-                ),
-              ),
-            ],
-          ),
         ),
         const SizedBox(height: Sp.x4),
 
         SectionCard(
           title: 'Job description',
+            icon: Icons.description_rounded,
+            tone: Tones.brand,
           child: Text(
             job.description,
             style: const TextStyle(fontSize: 14.5, height: 1.6, color: C.ink700),
@@ -177,6 +167,8 @@ class _JobBody extends ConsumerWidget {
           const SizedBox(height: Sp.x3),
           SectionCard(
             title: 'Responsibilities',
+            icon: Icons.checklist_rounded,
+            tone: Tones.violet,
             child: Text(
               job.responsibilities!,
               style: const TextStyle(fontSize: 14.5, height: 1.6, color: C.ink700),
@@ -188,6 +180,8 @@ class _JobBody extends ConsumerWidget {
           const SizedBox(height: Sp.x3),
           SectionCard(
             title: 'Requirements',
+            icon: Icons.fact_check_rounded,
+            tone: Tones.amber,
             child: Text(
               job.requirements!,
               style: const TextStyle(fontSize: 14.5, height: 1.6, color: C.ink700),
@@ -199,12 +193,13 @@ class _JobBody extends ConsumerWidget {
           const SizedBox(height: Sp.x3),
           SectionCard(
             title: 'Key skills',
+            icon: Icons.bolt_rounded,
+            tone: Tones.teal,
             child: Wrap(
               spacing: Sp.x2,
               runSpacing: Sp.x2,
               children: [
-                for (final s in job.skillChips)
-                  Tag(s, background: C.brand50, foreground: C.brand700),
+                for (final s in job.skillChips) Tag.tone(s),
               ],
             ),
           ),
@@ -214,6 +209,8 @@ class _JobBody extends ConsumerWidget {
           const SizedBox(height: Sp.x3),
           SectionCard(
             title: 'Benefits',
+            icon: Icons.card_giftcard_rounded,
+            tone: Tones.ok,
             child: Wrap(
               spacing: Sp.x2,
               runSpacing: Sp.x2,
@@ -239,6 +236,8 @@ class _JobBody extends ConsumerWidget {
         const SizedBox(height: Sp.x3),
         SectionCard(
           title: 'Overview',
+            icon: Icons.info_outline_rounded,
+            tone: Tones.sky,
           child: Column(
             children: [
               DetailRow('Track', labelFor(skillLevelLabels, job.skillLevel)),
@@ -282,6 +281,135 @@ class _JobBody extends ConsumerWidget {
           orElse: () => const SizedBox.shrink(),
         ),
       ],
+    );
+  }
+}
+
+/// The top of the posting, on the profile band's gradient: the employer, the
+/// title, and what the server can vouch for — a verified employer, how recent
+/// the posting is, how many have applied. Nothing here is decoration standing
+/// in for a fact.
+class _Hero extends StatelessWidget {
+  const _Hero({required this.job, required this.company});
+  final JobOut job;
+  final String company;
+
+  @override
+  Widget build(BuildContext context) {
+    final verified = job.company?.isVerified ?? false;
+    final applicants = job.applicationCount ?? 0;
+    final views = job.viewCount ?? 0;
+
+    Widget pill(IconData icon, String text) => Container(
+          padding: const EdgeInsets.symmetric(horizontal: Sp.x3, vertical: 5),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.18),
+            borderRadius: R.brPill,
+            border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 13, color: Colors.white),
+              const SizedBox(width: 5),
+              Text(
+                text,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
+        );
+
+    return GradientBanner(
+      layers: Gradients.band,
+      padding: const EdgeInsets.all(Sp.x4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(3),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(R.md + 3),
+                ),
+                child: CompanyLogo(path: job.company?.logoPath, name: company, size: 54),
+              ),
+              const SizedBox(width: Sp.x3),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      job.title,
+                      style: const TextStyle(
+                        fontFamily: Fonts.display,
+                        fontSize: 20,
+                        height: 1.25,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      company,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white.withValues(alpha: 0.92),
+                      ),
+                    ),
+                    if (verified) ...[
+                      const SizedBox(height: Sp.x2),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: Sp.x2 + 2, vertical: 4),
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: R.brPill,
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.verified_rounded, size: 14, color: C.ok500),
+                            SizedBox(width: 4),
+                            Text(
+                              'Verified employer',
+                              style: TextStyle(
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w700,
+                                color: C.ok600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: Sp.x3),
+          Wrap(
+            spacing: Sp.x2,
+            runSpacing: Sp.x2,
+            children: [
+              if (job.postedAt != null) pill(Icons.schedule_rounded, 'Posted ${timeAgo(job.postedAt)}'),
+              if (applicants > 0)
+                pill(Icons.groups_rounded, '$applicants ${applicants == 1 ? 'applicant' : 'applicants'}'),
+              if (views > 0) pill(Icons.visibility_rounded, '$views views'),
+              if (job.vacancies > 1) pill(Icons.event_seat_rounded, '${job.vacancies} openings'),
+              if (!job.isOpen) pill(Icons.lock_outline_rounded, 'Closed'),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
@@ -370,8 +498,29 @@ class _ActionBarState extends ConsumerState<_ActionBar> {
       child: SafeArea(
         top: false,
         child: Padding(
-          padding: const EdgeInsets.all(Sp.x4),
-          child: Row(
+          padding: const EdgeInsets.fromLTRB(Sp.x4, Sp.x3, Sp.x4, Sp.x4),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (!closed && !applied)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: Sp.x2 + 2),
+                  child: Row(
+                    children: [
+                      Icon(Icons.bolt_rounded, size: 16, color: Tones.ok.ink),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          // True to the apply flow: the saved profile and CV
+                          // are what the application carries.
+                          'One tap: your saved profile and CV go with it.',
+                          style: TextStyle(fontSize: 12.5, color: Tones.ok.ink),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              Row(
             children: [
               SizedBox(
                 width: Touch.primary + 8,
@@ -407,6 +556,8 @@ class _ActionBarState extends ConsumerState<_ActionBar> {
                             onPressed: _apply,
                           ),
               ),
+            ],
+          ),
             ],
           ),
         ),

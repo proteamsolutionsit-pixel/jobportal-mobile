@@ -141,6 +141,15 @@ abstract final class Gradients {
     ),
   ];
 
+  /// The hero's base layer alone, for a plain [BoxDecoration] that cannot
+  /// stack layers (a header strip).
+  static const hero0 = LinearGradient(
+    begin: Alignment(-1, -0.4),
+    end: Alignment(1, 0.4),
+    colors: [C.brand600, C.brand500, C.brand400],
+    stops: [0, 0.46, 1],
+  );
+
   /// `.profhead__band` — the profile header: blue with pink, violet and teal
   /// glows.
   static const band = [

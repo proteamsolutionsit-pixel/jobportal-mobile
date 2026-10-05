@@ -417,7 +417,7 @@ void main() {
       await tester.tap(find.text('Jobs'));
       await settle(tester);
 
-      expect(find.text('137 jobs'), findsOneWidget);
+      expect(find.text('137 jobs open now'), findsOneWidget);
       expect(find.text('Senior Accountant'), findsWidgets);
     });
 
@@ -438,7 +438,7 @@ void main() {
       await tester.tap(find.text('Jobs'));
       await settle(tester);
 
-      expect(find.text('500+ jobs'), findsOneWidget);
+      expect(find.text('500+ jobs open now'), findsOneWidget);
     });
 
     testWidgets('an empty result offers a way onward', (tester) async {
@@ -644,7 +644,7 @@ void main() {
       await settle(tester);
 
       expect(find.text('1 application'), findsOneWidget);
-      expect(find.text('Shortlisted'), findsOneWidget);
+      expect(find.text('Shortlisted'), findsNWidgets(2)); // the badge, and the tracker step
       expect(find.text('Withdraw'), findsOneWidget);
     });
 

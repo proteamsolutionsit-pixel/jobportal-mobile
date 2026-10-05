@@ -25,26 +25,58 @@ import 'package:jobportal_mobile/main.dart';
 
 const _base = 'http://127.0.0.1:8000';
 
-Map<String, dynamic> _job(int id, String title, String company, String loc) => {
+/// A posting in JobOut's real shape — `job_types` and `benefits` as lists,
+/// as the API sends them (see test/fixtures/live/job_detail.json).
+Map<String, dynamic> _job(int id, String title, String company, String loc,
+        {String mode = 'onsite', String type = 'full_time', bool verified = true}) =>
+    {
       'id': id,
       'title': title,
       'slug': 'job-$id',
-      'description': 'x',
+      'reference_code': 'JF-${id.toString().padLeft(6, '0')}',
+      'description': 'Own the day-to-day of a busy team: scheduling, '
+          'coordination and keeping every shift running on time.',
+      'description_format': 'text',
+      'responsibilities': 'Plan weekly rosters\nTrack attendance and leave\n'
+          'Resolve scheduling conflicts quickly',
+      'responsibilities_format': 'text',
+      'requirements': 'Graduate in any discipline\nComfortable with Excel',
+      'requirements_format': 'text',
+      'key_skills': 'Scheduling, Excel, Payroll, Communication',
       'location': loc,
-      'min_experience': 2,
-      'max_experience': 5,
-      'hide_salary': false,
-      'skill_level': 'experienced',
-      'job_type': 'full_time',
-      'work_mode': 'onsite',
-      'vacancies': 1,
-      'status': 'active',
-      'min_salary': '400000.00',
-      'max_salary': '700000.00',
+      'min_experience': 1,
+      'max_experience': 4,
+      'min_salary': '350000.00',
+      'max_salary': '600000.00',
       'salary_period': 'year',
       'salary_mode': 'range',
-      'posted_at': '2026-09-30T10:30:00',
-      'company': {'id': id, 'name': company},
+      'hide_salary': false,
+      'skill_level': 'experienced',
+      'job_type': type,
+      'job_types': [type],
+      'benefits': ['provident_fund', 'health_insurance', 'paid_leave'],
+      'work_mode': mode,
+      'vacancies': 3,
+      'view_count': 214,
+      'application_count': 18,
+      'status': 'active',
+      'posted_at': '2026-10-03T10:30:00',
+      'expires_at': '2026-11-03T10:30:00',
+      'company': {
+        'id': id,
+        'name': company,
+        'slug': company.toLowerCase(),
+        'logo_path': null,
+        'industry': 'IT Services',
+        'hq_location': loc,
+        'is_verified': verified,
+      },
+      'closure': null,
+    };
+
+Map<String, dynamic> _brief(Map<String, dynamic> j) => {
+      for (final k in ['id', 'title', 'slug', 'location', 'job_type', 'work_mode', 'status', 'company'])
+        k: j[k],
     };
 
 Future<void> _loadFonts() async {
@@ -115,22 +147,53 @@ void main() {
           }))
       ..onGet('/api/auth/providers', (s) => s.reply(200, {'google': false}))
       ..onGet('/api/branding', (s) => s.reply(200, {'name': 'JobsFlood'}))
-      ..onGet('/api/home/jobs', (s) => s.reply(200, {'items': [
+      ..onGet('/api/home/jobs', (s) => s.reply(200, [
             _job(1, 'HR Executive', 'Accenture', 'Bengaluru'),
-            _job(2, 'Payroll Associate', 'Infosys', 'Pune'),
+            _job(2, 'Payroll Associate', 'Infosys', 'Pune', mode: 'hybrid'),
             _job(3, 'Talent Acquisition Specialist', 'Bosch', 'Bengaluru'),
-          ]}))
+          ]))
+      ..onGet('/api/jobs', (s) => s.reply(200, {
+            'items': [
+              _job(1, 'HR Executive', 'Accenture', 'Bengaluru'),
+              _job(2, 'Payroll Associate', 'Infosys', 'Pune', mode: 'hybrid'),
+              _job(3, 'Talent Acquisition Specialist', 'Bosch', 'Bengaluru'),
+              _job(5, 'Workforce Scheduler', 'Capgemini', 'Chennai', mode: 'remote'),
+            ],
+            'total': 141, 'page': 1, 'per_page': 20, 'total_capped': false,
+          }))
+      ..onGet('/api/jobs/facets', (s) => s.reply(200, {}))
+      ..onGet('/api/jobs/1', (s) => s.reply(200, _job(1, 'HR Executive', 'Accenture', 'Bengaluru')))
+      ..onGet('/api/jobs/1/state', (s) => s.reply(200, {'job_id': 1, 'has_applied': false, 'is_saved': true}))
+      ..onGet('/api/jobs/1/similar', (s) => s.reply(200, [
+            _job(5, 'Workforce Scheduler', 'Capgemini', 'Chennai', mode: 'remote'),
+          ]))
+      ..onGet('/api/seeker/viewers', (s) => s.reply(200, {'items': [], 'total': 3, 'view_total': 7}))
+      ..onGet('/api/seeker/alerts', (s) => s.reply(200, []))
       ..onGet('/api/seeker/suggested', (s) => s.reply(200, {'items': [
             _job(4, 'HR Scheduler', 'Capgemini', 'Bengaluru'),
           ]}))
       ..onGet('/api/applications/mine', (s) => s.reply(200, {
             'items': [
-              {'id': 1, 'job_id': 1, 'status': 'interview', 'applied_at': '2026-09-20T10:00:00'},
-              {'id': 2, 'job_id': 2, 'status': 'applied', 'applied_at': '2026-09-21T10:00:00'},
+              {'id': 1, 'job_id': 1, 'status': 'interview', 'applied_at': '2026-09-28T10:00:00',
+               'job': _brief(_job(1, 'HR Executive', 'Accenture', 'Bengaluru'))},
+              {'id': 2, 'job_id': 3, 'status': 'shortlisted', 'applied_at': '2026-09-25T10:00:00',
+               'job': _brief(_job(3, 'Talent Acquisition Specialist', 'Bosch', 'Bengaluru'))},
+              {'id': 3, 'job_id': 2, 'status': 'viewed', 'applied_at': '2026-09-21T10:00:00',
+               'job': _brief(_job(2, 'Payroll Associate', 'Infosys', 'Pune'))},
+              {'id': 4, 'job_id': 5, 'status': 'applied', 'applied_at': '2026-10-02T10:00:00',
+               'job': _brief(_job(5, 'Workforce Scheduler', 'Capgemini', 'Chennai'))},
             ],
-            'total': 6, 'page': 1, 'per_page': 100,
+            'total': 4, 'page': 1, 'per_page': 20,
           }))
-      ..onGet('/api/seeker/saved', (s) => s.reply(200, {'items': [], 'total': 4, 'page': 1, 'per_page': 1}))
+      ..onGet('/api/seeker/saved', (s) => s.reply(200, {
+            'items': [
+              {'saved_at': '2026-10-01T09:00:00', 'is_open': true,
+               'job': _job(1, 'HR Executive', 'Accenture', 'Bengaluru')},
+              {'saved_at': '2026-09-29T09:00:00', 'is_open': true,
+               'job': _job(5, 'Workforce Scheduler', 'Capgemini', 'Chennai', mode: 'remote')},
+            ],
+            'total': 2, 'page': 1, 'per_page': 20,
+          }))
       ..onGet('/api/seeker/profile', (s) => s.reply(200, {
             'id': 3, 'full_name': 'A Tirumurthy', 'email': 'tirumurthyuk@gmail.com',
             'is_searchable': true, 'is_public': false, 'source': 'self_signup',
@@ -204,5 +267,31 @@ void main() {
     await tester.tap(find.text('How complete is my profile?'));
     await _frames(tester, 25);
     await _snap(tester, '5-assistant');
+
+    await tester.pageBack();
+    await _frames(tester);
+    await tester.tap(find.text('Jobs').last);
+    await _frames(tester, 30);
+    await _snap(tester, '6-jobs');
+
+    await tester.tap(find.text('HR Executive').first);
+    await _frames(tester, 30);
+    await _snap(tester, '7-job-detail');
+
+    await tester.pageBack();
+    await _frames(tester);
+    await tester.tap(find.text('Applied').last);
+    await _frames(tester, 30);
+    await _snap(tester, '8-applied');
+
+    await tester.tap(find.text('Saved').last);
+    await _frames(tester, 30);
+    await _snap(tester, '9-saved');
+
+    await tester.tap(find.text('Profile').last);
+    await _frames(tester, 20);
+    await tester.tap(find.byIcon(Icons.settings_outlined));
+    await _frames(tester, 25);
+    await _snap(tester, '10-settings');
   });
 }

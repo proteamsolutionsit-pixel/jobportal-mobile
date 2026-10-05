@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/constants/enums.dart';
 import '../../../core/providers.dart';
 import '../../../core/theme/tokens.dart';
 import '../../../core/utils/format.dart';
@@ -69,28 +70,36 @@ class _JobsScreenState extends ConsumerState<JobsScreen> {
       ),
       body: Column(
         children: [
-          Container(
-            color: C.surface,
-            padding: const EdgeInsets.fromLTRB(Sp.x4, 0, Sp.x4, Sp.x3),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Autosuggest(
-                    controller: _search,
-                    hint: 'Job title, skill or company',
-                    prefixIcon: Icons.search_rounded,
-                    fetch: (term) =>
-                        ref.read(jobsRepositoryProvider).suggestTitles(term),
-                    // Whatever is typed searches, chosen from the list or not.
-                    onSubmitted: _submitSearch,
+          // The search lives on the brand gradient, as the web's hero does.
+          DecoratedBox(
+            decoration: const BoxDecoration(gradient: Gradients.hero0),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(Sp.x4, Sp.x2, Sp.x4, Sp.x3),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Autosuggest(
+                          controller: _search,
+                          hint: 'Job title, skill or company',
+                          prefixIcon: Icons.search_rounded,
+                          fetch: (term) =>
+                              ref.read(jobsRepositoryProvider).suggestTitles(term),
+                          // Whatever is typed searches, chosen from the list or not.
+                          onSubmitted: _submitSearch,
+                        ),
+                      ),
+                      const SizedBox(width: Sp.x2),
+                      _FilterButton(count: query.filterCount),
+                    ],
                   ),
-                ),
-                const SizedBox(width: Sp.x2),
-                _FilterButton(count: query.filterCount),
-              ],
+                  const SizedBox(height: Sp.x3),
+                  _WorkModeChips(selected: query.workModes),
+                ],
+              ),
             ),
           ),
-          const Divider(height: 1),
 
           Expanded(
             child: results.when(
@@ -129,16 +138,40 @@ class _JobsScreenState extends ConsumerState<JobsScreen> {
                     separatorBuilder: (_, _) => const SizedBox(height: Sp.x3),
                     itemBuilder: (context, i) {
                       if (i == 0) {
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: Sp.x1),
-                          child: Text(
-                            // The payload's total, never items.length — and
-                            // when the backend capped its count, "500+" rather
-                            // than a precise-looking wrong number.
-                            '${resultCount(page.total, capped: page.totalCapped)} '
-                            '${page.total == 1 ? 'job' : 'jobs'}',
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
+                        return Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: Sp.x3,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Tones.ok.wash,
+                                borderRadius: R.brPill,
+                                border: Border.all(color: Tones.ok.border),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.work_rounded, size: 14, color: Tones.ok.ink),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    // The payload's total, never items.length —
+                                    // and when the backend capped its count,
+                                    // "500+" rather than a precise-looking
+                                    // wrong number.
+                                    '${resultCount(page.total, capped: page.totalCapped)} '
+                                    '${page.total == 1 ? 'job' : 'jobs'} open now',
+                                    style: TextStyle(
+                                      fontSize: 12.5,
+                                      fontWeight: FontWeight.w700,
+                                      color: Tones.ok.ink,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         );
                       }
                       if (i == page.items.length + 1) {
@@ -174,6 +207,75 @@ class _JobsScreenState extends ConsumerState<JobsScreen> {
   }
 }
 
+/// One-tap work-mode filter: the most common narrowing, kept out of the
+/// sheet. It writes the same `work_modes` the filter sheet does, so the two
+/// never disagree.
+class _WorkModeChips extends ConsumerWidget {
+  const _WorkModeChips({required this.selected});
+  final List<String> selected;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    void pick(List<String> modes) {
+      final q = ref.read(jobQueryProvider);
+      ref.read(jobQueryProvider.notifier).state = q.copyWith(workModes: modes);
+    }
+
+    Widget chip(String label, IconData icon, List<String> modes) {
+      final on = modes.isEmpty
+          ? selected.isEmpty
+          : selected.length == 1 && selected.first == modes.first;
+      return Padding(
+        padding: const EdgeInsets.only(right: Sp.x2),
+        child: Material(
+          color: on ? Colors.white : Colors.white.withValues(alpha: 0.16),
+          borderRadius: R.brPill,
+          child: InkWell(
+            borderRadius: R.brPill,
+            onTap: () => pick(modes),
+            child: Container(
+              constraints: const BoxConstraints(minHeight: Touch.min + 2),
+              padding: const EdgeInsets.symmetric(horizontal: Sp.x3),
+              decoration: BoxDecoration(
+                borderRadius: R.brPill,
+                border: Border.all(color: Colors.white.withValues(alpha: on ? 1 : 0.35)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(icon, size: 15, color: on ? C.brand600 : Colors.white),
+                  const SizedBox(width: 6),
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: on ? C.brand700 : Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return SizedBox(
+      height: Touch.min + 2,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        children: [
+          chip('All jobs', Icons.apps_rounded, const []),
+          chip(labelFor(workModeLabels, 'remote'), Icons.home_work_outlined, const ['remote']),
+          chip(labelFor(workModeLabels, 'hybrid'), Icons.sync_alt_rounded, const ['hybrid']),
+          chip(labelFor(workModeLabels, 'onsite'), Icons.apartment_rounded, const ['onsite']),
+        ],
+      ),
+    );
+  }
+}
+
 class _FilterButton extends StatelessWidget {
   const _FilterButton({required this.count});
   final int count;
@@ -189,8 +291,9 @@ class _FilterButton extends StatelessWidget {
           onPressed: () => showJobFilterSheet(context),
           style: OutlinedButton.styleFrom(
             padding: const EdgeInsets.symmetric(horizontal: Sp.x3),
-            backgroundColor: count > 0 ? C.brand50 : null,
-            side: BorderSide(color: count > 0 ? C.brand200 : C.lineStrong),
+            backgroundColor: Colors.white,
+            foregroundColor: C.brand600,
+            side: BorderSide(color: count > 0 ? C.brand300 : Colors.white),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,

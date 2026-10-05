@@ -563,3 +563,177 @@ class StatTile extends StatelessWidget {
     );
   }
 }
+
+/// One figure in a [PageHero]: the value bold, its label beside it.
+typedef HeroPill = ({IconData icon, String text});
+
+/// The gradient header at the top of a main tab — the web's `.page-hero`,
+/// with the page's own figures as pills. Every figure handed to it must come
+/// from the server (a `total`, never a list length).
+class PageHero extends StatelessWidget {
+  const PageHero({
+    super.key,
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    this.pills = const [],
+    this.child,
+  });
+
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final List<HeroPill> pills;
+
+  /// Anything else that belongs inside the banner — a search field.
+  final Widget? child;
+
+  @override
+  Widget build(BuildContext context) {
+    return GradientBanner(
+      layers: Gradients.hero,
+      padding: const EdgeInsets.all(Sp.x4 + 2),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  borderRadius: R.brMd,
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.35)),
+                ),
+                child: Icon(icon, color: Colors.white, size: 22),
+              ),
+              const SizedBox(width: Sp.x3),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontFamily: Fonts.display,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                        height: 1.2,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 13,
+                        height: 1.35,
+                        color: Colors.white.withValues(alpha: 0.88),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (pills.isNotEmpty) ...[
+            const SizedBox(height: Sp.x3),
+            Wrap(
+              spacing: Sp.x2,
+              runSpacing: Sp.x2,
+              children: [for (final p in pills) _HeroPillChip(p)],
+            ),
+          ],
+          if (child != null) ...[const SizedBox(height: Sp.x3), child!],
+        ],
+      ),
+    );
+  }
+}
+
+class _HeroPillChip extends StatelessWidget {
+  const _HeroPillChip(this.pill);
+  final HeroPill pill;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: Sp.x3, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.18),
+        borderRadius: R.brPill,
+        border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(pill.icon, size: 14, color: Colors.white),
+          const SizedBox(width: 6),
+          Text(
+            pill.text,
+            style: const TextStyle(
+              fontSize: 12.5,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A labelled fact on a tinted tile — salary, experience, location.
+class FactTile extends StatelessWidget {
+  const FactTile({
+    super.key,
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.tone,
+  });
+
+  final String label;
+  final String value;
+  final IconData icon;
+  final Tone tone;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(Sp.x3),
+      decoration: BoxDecoration(
+        color: tone.wash,
+        borderRadius: R.brLg,
+        border: Border.all(color: tone.border),
+      ),
+      child: Row(
+        children: [
+          ToneBadge(icon: icon, tone: tone, size: 34),
+          const SizedBox(width: Sp.x3),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: const TextStyle(fontSize: 11.5, color: C.ink600)),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 14.5,
+                    height: 1.25,
+                    fontWeight: FontWeight.w700,
+                    color: tone.ink,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

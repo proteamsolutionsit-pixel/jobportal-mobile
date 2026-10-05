@@ -4,6 +4,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../../core/config/environment.dart';
 import '../../../core/errors/api_exception.dart';
@@ -28,7 +29,7 @@ class SettingsScreen extends ConsumerWidget {
         children: [
           const _Heading('Account'),
           ListTile(
-            leading: const Icon(Icons.mail_outline_rounded),
+            leading: ToneBadge(icon: Icons.mail_outline_rounded, tone: Tones.sky, size: 36),
             title: const Text('Email address'),
             subtitle: Text(user?.email ?? ''),
             trailing: user?.isEmailVerified == true
@@ -37,7 +38,7 @@ class SettingsScreen extends ConsumerWidget {
                     background: C.warn50, foreground: C.warn600),
           ),
           ListTile(
-            leading: const Icon(Icons.lock_outline_rounded),
+            leading: ToneBadge(icon: Icons.lock_outline_rounded, tone: Tones.violet, size: 36),
             title: const Text('Change password'),
             trailing: const Icon(Icons.chevron_right_rounded),
             onTap: () => context.push(Routes.changePassword),
@@ -45,21 +46,21 @@ class SettingsScreen extends ConsumerWidget {
 
           const _Heading('Job search'),
           ListTile(
-            leading: const Icon(Icons.notifications_active_outlined),
+            leading: ToneBadge(icon: Icons.notifications_active_outlined, tone: Tones.amber, size: 36),
             title: const Text('Job alerts'),
             subtitle: const Text('Get told when matching jobs are posted'),
             trailing: const Icon(Icons.chevron_right_rounded),
             onTap: () => context.push(Routes.alerts),
           ),
           ListTile(
-            leading: const Icon(Icons.tune_rounded),
+            leading: ToneBadge(icon: Icons.tune_rounded, tone: Tones.brand, size: 36),
             title: const Text('Notifications'),
-            subtitle: const Text('What we email you about'),
+            subtitle: const Text('Choose how you hear about each update'),
             trailing: const Icon(Icons.chevron_right_rounded),
             onTap: () => context.push(Routes.notificationPrefs),
           ),
           ListTile(
-            leading: const Icon(Icons.visibility_outlined),
+            leading: ToneBadge(icon: Icons.visibility_outlined, tone: Tones.teal, size: 36),
             title: const Text('Who viewed my profile'),
             subtitle: viewers.maybeWhen(
               // The payload's own total. NEVER list.length — this is the exact
@@ -79,12 +80,12 @@ class SettingsScreen extends ConsumerWidget {
 
           const _Heading('Security'),
           ListTile(
-            leading: const Icon(Icons.logout_rounded),
+            leading: ToneBadge(icon: Icons.logout_rounded, tone: Tones.pink, size: 36),
             title: const Text('Sign out'),
             onTap: () => _signOut(context, ref, everywhere: false),
           ),
           ListTile(
-            leading: const Icon(Icons.devices_other_rounded),
+            leading: ToneBadge(icon: Icons.devices_other_rounded, tone: Tones.lime, size: 36),
             title: const Text('Sign out on all devices'),
             subtitle: const Text('Ends every session, including this one'),
             onTap: () => _signOut(context, ref, everywhere: true),
@@ -92,7 +93,11 @@ class SettingsScreen extends ConsumerWidget {
 
           const _Heading('Danger zone'),
           ListTile(
-            leading: const Icon(Icons.delete_outline_rounded, color: C.bad500),
+            leading: const ToneBadge(
+              icon: Icons.delete_outline_rounded,
+              tone: (wash: C.bad50, border: C.bad50, ink: C.bad600, solid: C.bad500),
+              size: 36,
+            ),
             title: const Text('Delete my account',
                 style: TextStyle(color: C.bad600)),
             subtitle: const Text('Permanent. Your profile and CV are removed.'),
@@ -100,12 +105,21 @@ class SettingsScreen extends ConsumerWidget {
           ),
 
           const SizedBox(height: Sp.x6),
+          // The installed build's own version and the brand's own name. This
+          // was the literal "JobPortal 1.0.0" on every build, so version 1.1.0
+          // told its user it was 1.0.0 under a name the product does not use.
           Center(
-            child: Text(
-              Env.isProduction
-                  ? 'JobPortal 1.0.0'
-                  : 'JobPortal 1.0.0 · ${Env.current.name}',
-              style: const TextStyle(fontSize: 12, color: C.ink400),
+            child: FutureBuilder<PackageInfo>(
+              future: PackageInfo.fromPlatform(),
+              builder: (context, snap) {
+                final name = ref.watch(brandingProvider).valueOrNull?.name ?? 'JobsFlood';
+                final info = snap.data;
+                final version = info == null ? '' : ' ${info.version} (${info.buildNumber})';
+                return Text(
+                  Env.isProduction ? '$name$version' : '$name$version · ${Env.current.name}',
+                  style: const TextStyle(fontSize: 12, color: C.ink400),
+                );
+              },
             ),
           ),
           const SizedBox(height: Sp.x6),

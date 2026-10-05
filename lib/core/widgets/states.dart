@@ -12,6 +12,7 @@ library;
 
 import 'package:flutter/material.dart';
 
+import '../../data/models/wire.dart';
 import '../errors/api_exception.dart';
 import '../theme/tokens.dart';
 
@@ -129,13 +130,24 @@ class EmptyState extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 64,
-              height: 64,
-              decoration: const BoxDecoration(
-                color: C.brand50,
+              width: 84,
+              height: 84,
+              decoration: BoxDecoration(
                 shape: BoxShape.circle,
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [C.brand400, C.violet500],
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: C.brand500.withValues(alpha: 0.28),
+                    blurRadius: 24,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
               ),
-              child: Icon(icon, size: 30, color: C.brand500),
+              child: Icon(icon, size: 38, color: Colors.white),
             ),
             const SizedBox(height: Sp.x4),
             Text(
@@ -153,7 +165,11 @@ class EmptyState extends StatelessWidget {
             ],
             if (actionLabel != null && onAction != null) ...[
               const SizedBox(height: Sp.x5),
-              FilledButton(onPressed: onAction, child: Text(actionLabel!)),
+              FilledButton.icon(
+                onPressed: onAction,
+                icon: const Icon(Icons.arrow_forward_rounded, size: 18),
+                label: Text(actionLabel!),
+              ),
             ],
           ],
         ),
@@ -177,7 +193,12 @@ class ErrorView extends StatelessWidget {
   Widget build(BuildContext context) {
     final api = error is ApiException ? error as ApiException : null;
     final offline = api?.kind == ApiErrorKind.offline;
-    final canRetry = onRetry != null && (api == null || api.isRetryable);
+    // A reply in a shape this build does not know. Retrying will not help,
+    // and "Something went wrong" said nothing anyone could act on -- which is
+    // all the Saved and Applied tabs said on 5 Oct 2026 for exactly this.
+    final outdated = error is WireFormatException;
+    final canRetry =
+        onRetry != null && !outdated && (api == null || api.isRetryable);
 
     return Center(
       child: Padding(
@@ -186,28 +207,40 @@ class ErrorView extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 64,
-              height: 64,
-              decoration: const BoxDecoration(
-                color: C.bad50,
+              width: 76,
+              height: 76,
+              decoration: BoxDecoration(
+                color: C.amber50,
                 shape: BoxShape.circle,
+                border: Border.all(color: Tones.amber.border, width: 2),
               ),
               child: Icon(
-                offline ? Icons.wifi_off_rounded : Icons.error_outline_rounded,
-                size: 30,
-                color: C.bad500,
+                offline
+                    ? Icons.wifi_off_rounded
+                    : outdated
+                        ? Icons.system_update_rounded
+                        : Icons.cloud_off_rounded,
+                size: 34,
+                color: C.amber500,
               ),
             ),
             const SizedBox(height: Sp.x4),
             Text(
-              offline ? 'You appear to be offline' : 'Something went wrong',
+              offline
+                  ? 'You appear to be offline'
+                  : outdated
+                      ? 'Please update the app'
+                      : 'We could not load this',
               style: Theme.of(context).textTheme.titleLarge,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: Sp.x2),
             Text(
-              // The server's own wording, not ours.
-              api?.message ?? 'Please try again.',
+              // The server's own wording where there is one, not ours.
+              outdated
+                  ? 'This screen has new information your version of the app '
+                      'cannot show yet. Updating will fix it.'
+                  : api?.message ?? 'Please try again in a moment.',
               style: Theme.of(context).textTheme.bodyMedium,
               textAlign: TextAlign.center,
             ),

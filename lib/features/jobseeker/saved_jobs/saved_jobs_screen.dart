@@ -60,12 +60,16 @@ class SavedJobsScreen extends ConsumerWidget {
               separatorBuilder: (_, _) => const SizedBox(height: Sp.x3),
               itemBuilder: (context, i) {
                 if (i == 0) {
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: Sp.x1),
-                    child: Text(
-                      '${list.total} saved',
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
+                  return PageHero(
+                    title: 'Saved for later',
+                    subtitle: 'Jobs you bookmarked. Apply before they close.',
+                    icon: Icons.bookmarks_rounded,
+                    pills: [
+                      (
+                        icon: Icons.bookmark_rounded,
+                        text: '${list.total} saved',
+                      ),
+                    ],
                   );
                 }
                 final entry = list.items[i - 1];
