@@ -204,6 +204,10 @@ class SeekerRepository {
     return JobAlert.decodeList(json);
   }
 
+  /// `POST /api/seeker/alerts` takes AlertIn: `name` (required) and
+  /// `keywords`. This sent `keyword` and no name until 5 Oct 2026, so every
+  /// alert created from the app was refused with a 422. The name is made from
+  /// what was typed, as the web's form suggests one.
   Future<void> createAlert({
     required String keyword,
     String? location,
@@ -211,7 +215,8 @@ class SeekerRepository {
   }) =>
       _api.post<dynamic>('/api/seeker/alerts',
           body: compact({
-            'keyword': keyword,
+            'name': location == null ? keyword : '$keyword in $location',
+            'keywords': keyword,
             'location': location,
             'frequency': frequency,
           }));

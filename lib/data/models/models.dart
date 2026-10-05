@@ -189,7 +189,7 @@ class CompanyDetailOut {
       // The company's own fields are at the TOP level of this payload, not
       // under a `company` key, so the same Wire is handed to both.
       company: CompanyOut.fromWire(w),
-      jobs: w.listOrEmpty('jobs', JobBriefOut.fromWire),
+      jobs: w.listOrEmpty('jobs', JobBriefOut.fromCard),
     );
   }
 }
@@ -294,7 +294,11 @@ class JobOut {
 
   factory JobOut.fromWire(Wire w) {
     final primary = w.str('job_type');
-    final declared = canonicalise(jobTypeValues, w.csv('job_types'));
+    // A JSON array on the wire (`job_types: list[str]` in JobOut). Read as
+    // CSV until 5 Oct 2026, which threw on every real posting: hand-written
+    // fixtures left the field out, so nothing failed until a phone did. The
+    // live-payload tests now hold the server's actual responses.
+    final declared = canonicalise(jobTypeValues, w.stringsOrEmpty('job_types'));
 
     // Primary first, then the rest in vocabulary order — mirrors the server's
     // job_types_of() so two reads of the same posting never disagree.
@@ -327,7 +331,7 @@ class JobOut {
       salaryPeriod: w.strOrNull('salary_period') ?? 'year',
       salaryMode: w.strOrNull('salary_mode') ?? 'range',
       jobTypes: types,
-      benefits: canonicalise(jobBenefits, w.csv('benefits')),
+      benefits: canonicalise(jobBenefits, w.stringsOrEmpty('benefits')),
       benefitsOther: w.strOrNull('benefits_other'),
       descriptionFormat: w.strOrNull('description_format') ?? 'text',
       industry: w.strOrNull('industry'),
@@ -422,6 +426,28 @@ class JobBriefOut {
         workMode: w.str('work_mode'),
         status: w.str('status'),
         company: w.objectOrNull('company', CompanyOut.fromWire),
+      );
+
+  /// A company page's job list, which is `JobCardOut` on the wire, NOT the
+  /// brief inside an application: no `status`, and the employer flattened to
+  /// `company_id` / `company_name` / `logo_path`. Decoding it with [fromWire]
+  /// threw "status: required" and the company screen showed an error.
+  ///
+  /// Status is set rather than read: companies.py lists only `_LIVE`
+  /// postings (`Job.status == "active"`), so every row here is open.
+  factory JobBriefOut.fromCard(Wire w) => JobBriefOut(
+        id: w.integer('id'),
+        title: w.str('title'),
+        slug: w.str('slug'),
+        location: w.str('location'),
+        jobType: w.str('job_type'),
+        workMode: w.str('work_mode'),
+        status: 'active',
+        company: CompanyOut(
+          id: w.integer('company_id'),
+          name: w.strOrNull('company_name') ?? '',
+          logoPath: w.strOrNull('logo_path'),
+        ),
       );
 }
 
@@ -919,41 +945,70 @@ class NotificationListOut {
 /// The richer per-event shape (Email / In-app / Both / None per event) is among
 /// the 82 uncommitted files on the web side and is **not on production**. Built
 /// against what is live; see `docs/feature-parity.md`.
-class NotificationPrefs {
-  const NotificationPrefs({
-    required this.emailApplication,
-    required this.emailStatus,
-    required this.emailDigest,
+/// One notification event and how the seeker wants it delivered — an entry
+/// of `PrefsOut.events`.
+///
+/// The server moved from three email on/off booleans to this per-event,
+/// per-channel shape; the app kept decoding the old one, so the preferences
+/// screen failed on every account ("email_application: required").
+class NotificationEvent {
+  const NotificationEvent({
+    required this.key,
+    required this.column,
+    required this.label,
+    required this.channel,
+    required this.channels,
+    this.help,
   });
 
-  final bool emailApplication;
-  final bool emailStatus;
-  final bool emailDigest;
+  final String key;
 
-  factory NotificationPrefs.fromWire(Wire w) => NotificationPrefs(
-        emailApplication: w.boolean('email_application'),
-        emailStatus: w.boolean('email_status'),
-        emailDigest: w.boolean('email_digest'),
+  /// The `PrefsIn` field this event is saved through (`notify_shortlisted`, …).
+  final String column;
+  final String label;
+  final String? help;
+
+  /// One of [channels]: `both`, `email`, `in_app` or `none`.
+  final String channel;
+  final List<String> channels;
+
+  factory NotificationEvent.fromWire(Wire w) => NotificationEvent(
+        key: w.str('key'),
+        column: w.str('column'),
+        label: w.str('label'),
+        help: w.strOrNull('help'),
+        channel: w.str('channel'),
+        channels: w.stringsOrEmpty('channels'),
       );
+
+  NotificationEvent withChannel(String value) => NotificationEvent(
+        key: key,
+        column: column,
+        label: label,
+        help: help,
+        channel: value,
+        channels: channels,
+      );
+}
+
+/// `GET/PUT /api/notifications/preferences` — `PrefsOut`.
+class NotificationPrefs {
+  const NotificationPrefs({required this.events});
+
+  final List<NotificationEvent> events;
+
+  factory NotificationPrefs.fromWire(Wire w) =>
+      NotificationPrefs(events: w.list('events', NotificationEvent.fromWire));
 
   static NotificationPrefs decode(Object? json) =>
       NotificationPrefs.fromWire(Wire.of(json, 'PrefsOut'));
 
-  Map<String, dynamic> toJson() => {
-        'email_application': emailApplication,
-        'email_status': emailStatus,
-        'email_digest': emailDigest,
-      };
+  /// `PrefsIn`: each event's column set to its channel. Every event is sent,
+  /// not just the changed one — an edit form sends back what it received.
+  Map<String, dynamic> toJson() => {for (final e in events) e.column: e.channel};
 
-  NotificationPrefs copyWith({
-    bool? emailApplication,
-    bool? emailStatus,
-    bool? emailDigest,
-  }) =>
-      NotificationPrefs(
-        emailApplication: emailApplication ?? this.emailApplication,
-        emailStatus: emailStatus ?? this.emailStatus,
-        emailDigest: emailDigest ?? this.emailDigest,
+  NotificationPrefs withChannel(String column, String value) => NotificationPrefs(
+        events: [for (final e in events) e.column == column ? e.withChannel(value) : e],
       );
 }
 
@@ -964,6 +1019,7 @@ class NotificationPrefs {
 class JobAlert {
   const JobAlert({
     required this.id,
+    required this.name,
     required this.keyword,
     required this.frequency,
     required this.isActive,
@@ -972,6 +1028,12 @@ class JobAlert {
   });
 
   final int id;
+
+  /// AlertOut.name — required on the server, the alert's own title.
+  final String name;
+
+  /// AlertOut.keywords. Named in the singular here because the screen asks
+  /// for one search phrase.
   final String keyword;
   final String frequency;
   final bool isActive;
@@ -980,7 +1042,11 @@ class JobAlert {
 
   factory JobAlert.fromWire(Wire w) => JobAlert(
         id: w.integer('id'),
-        keyword: w.strOrNull('keyword') ?? w.strOrNull('query') ?? '',
+        name: w.str('name'),
+        // `keywords`, the server's one name for it. This used to try
+        // `keyword` then `query` -- neither of which the API has ever sent --
+        // and the tolerance hid that every alert read back blank.
+        keyword: w.strOrNull('keywords') ?? '',
         frequency: w.strOrNull('frequency') ?? 'daily',
         isActive: w.boolean('is_active', orElse: true),
         location: w.strOrNull('location'),

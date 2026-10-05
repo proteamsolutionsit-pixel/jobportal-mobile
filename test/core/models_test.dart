@@ -71,14 +71,14 @@ void main() {
     test('empty job_types means "just the primary"', () {
       // The read-side fallback is the whole backward-compatibility story: the
       // importer, seed.py and the CodeIgniter migration all set only job_type.
-      final job = JobOut.decode(jobJson(overrides: {'job_types': ''}));
+      final job = JobOut.decode(jobJson(overrides: {'job_types': <String>[]}));
       expect(job.jobTypes, ['full_time']);
     });
 
     test('job_types comes back primary-first, then vocabulary order', () {
       final job = JobOut.decode(jobJson(overrides: {
         'job_type': 'contract',
-        'job_types': 'temporary,full_time,contract',
+        'job_types': ['temporary', 'full_time', 'contract'],
       }));
       // Primary first, then the rest in JOB_TYPES order (full_time before
       // temporary) — so two reads of the same posting never disagree.
@@ -89,14 +89,14 @@ void main() {
       // The server's own read-side rule: a stale value narrows a search, it
       // does not crash a facet.
       final job = JobOut.decode(jobJson(overrides: {
-        'job_types': 'full_time,zeppelin_pilot',
+        'job_types': ['full_time', 'zeppelin_pilot'],
       }));
       expect(job.jobTypes, ['full_time']);
     });
 
-    test('benefits come back in the canonical CSV order', () {
+    test('benefits come back in the canonical order', () {
       final job = JobOut.decode(jobJson(overrides: {
-        'benefits': 'paid_leave,esi,provident_fund',
+        'benefits': ['paid_leave', 'esi', 'provident_fund'],
       }));
       expect(job.benefits, ['provident_fund', 'esi', 'paid_leave']);
     });

@@ -157,7 +157,7 @@ void main() {
       tester,
       job(overrides: {
         'job_type': 'contract',
-        'job_types': 'temporary,contract',
+        'job_types': ['temporary', 'contract'],
       }),
     );
     expect(find.text('Contract'), findsOneWidget);

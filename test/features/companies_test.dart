@@ -105,14 +105,22 @@ void main() {
         'website': 'https://example.com',
         'about': 'Science applied to life.',
         'jobs': [
+          // JobCardOut, as companies.py serves it: no status, the employer
+          // flattened. This fixture used to carry `status` and the nested
+          // shape, which is why the screen's failure never showed here.
           {
             'id': 163,
             'title': 'Area Sales Manager',
             'slug': 'area-sales-manager-074c67',
             'location': 'Gurugram',
+            'min_experience': 2,
+            'hide_salary': false,
+            'skill_level': 'experienced',
             'job_type': 'full_time',
             'work_mode': 'onsite',
-            'status': 'open',
+            'company_id': 145,
+            'company_name': '3M India',
+            'logo_path': null,
           },
         ],
       });
@@ -122,6 +130,8 @@ void main() {
       expect(d.company.about, 'Science applied to life.');
       expect(d.jobs, hasLength(1));
       expect(d.jobs.first.title, 'Area Sales Manager');
+      expect(d.jobs.first.isOpen, isTrue);
+      expect(d.jobs.first.company!.name, '3M India');
     });
 
     test('a company with no open roles decodes rather than throwing', () {
