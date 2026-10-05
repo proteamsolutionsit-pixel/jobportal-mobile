@@ -82,6 +82,8 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
             padding: const EdgeInsets.fromLTRB(Sp.x4, Sp.x2, Sp.x2, Sp.x2),
             child: Row(
               children: [
+                const ToneBadge(icon: Icons.tune_rounded, tone: (wash: C.brand50, border: C.brand100, ink: C.brand600, solid: C.brand500), size: 32),
+                const SizedBox(width: Sp.x3),
                 Expanded(
                   child: Text('Filters', style: Theme.of(context).textTheme.titleLarge),
                 ),
@@ -294,6 +296,19 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
   }
 }
 
+/// Each filter group's own colour and icon — the order the sheet lists them.
+const _groupStyle = <String, ({IconData icon, int tone})>{
+  'Location': (icon: Icons.place_rounded, tone: 7),
+  'Work mode': (icon: Icons.apartment_rounded, tone: 3),
+  'Employment type': (icon: Icons.badge_rounded, tone: 2),
+  'Track': (icon: Icons.route_rounded, tone: 4),
+  'Experience': (icon: Icons.workspace_premium_rounded, tone: 1),
+  'Minimum salary': (icon: Icons.payments_rounded, tone: 6),
+  'Posted within': (icon: Icons.schedule_rounded, tone: 5),
+};
+
+Tone _toneFor(String title) => Tones.of(_groupStyle[title]?.tone ?? 1);
+
 class _Group extends StatelessWidget {
   const _Group({required this.title, required this.child, this.subtitle});
 
@@ -308,7 +323,17 @@ class _Group extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: Theme.of(context).textTheme.titleSmall),
+          Row(
+            children: [
+              ToneBadge(
+                icon: _groupStyle[title]?.icon ?? Icons.tune_rounded,
+                tone: _toneFor(title),
+                size: 28,
+              ),
+              const SizedBox(width: Sp.x2 + 2),
+              Text(title, style: Theme.of(context).textTheme.titleMedium),
+            ],
+          ),
           if (subtitle != null) ...[
             const SizedBox(height: 2),
             Text(subtitle!, style: Theme.of(context).textTheme.bodySmall),
@@ -345,6 +370,13 @@ class _Choices extends StatelessWidget {
             label: Text(labelFor(labels, v)),
             selected: selected.contains(v),
             onSelected: (_) => onToggle(v),
+            showCheckmark: false,
+            selectedColor: C.brand500,
+            labelStyle: TextStyle(
+              fontWeight: FontWeight.w600,
+              color: selected.contains(v) ? Colors.white : C.ink700,
+            ),
+            side: BorderSide(color: selected.contains(v) ? C.brand500 : C.lineStrong),
           ),
       ],
     );

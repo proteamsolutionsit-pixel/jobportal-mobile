@@ -8,6 +8,7 @@ import '../../../core/constants/enums.dart';
 import '../../../core/errors/api_exception.dart';
 import '../../../core/providers.dart';
 import '../../../core/theme/tokens.dart';
+import '../../../core/utils/format.dart';
 import '../../../core/widgets/autosuggest.dart';
 import '../../../core/widgets/common.dart';
 import '../../../core/widgets/states.dart';
@@ -45,19 +46,43 @@ class AlertsScreen extends ConsumerWidget {
 
           return ListView.separated(
             padding: const EdgeInsets.fromLTRB(Sp.x4, Sp.x4, Sp.x4, 96),
-            itemCount: list.length,
+            itemCount: list.length + 1,
             separatorBuilder: (_, _) => const SizedBox(height: Sp.x3),
             itemBuilder: (context, i) {
-              final alert = list[i];
+              if (i == 0) {
+                return PageHero(
+                  title: 'Job alerts',
+                  subtitle: 'New matching jobs, sent to you automatically.',
+                  icon: Icons.notifications_active_rounded,
+                  pills: [
+                    // The whole list: alerts are not paged.
+                    (
+                      icon: Icons.bolt_rounded,
+                      text: '${list.where((a) => a.isActive).length} active',
+                    ),
+                  ],
+                );
+              }
+              final alert = list[i - 1];
+              final tone = alert.isActive ? Tones.of(toneOf(alert.keyword)) : Tones.sky;
               return Container(
                 padding: const EdgeInsets.all(Sp.x4),
                 decoration: BoxDecoration(
                   color: C.surface,
                   borderRadius: R.brLg,
                   border: Border.all(color: C.line),
+                  boxShadow: Shadows.sm,
                 ),
                 child: Row(
                   children: [
+                    ToneBadge(
+                      icon: alert.isActive
+                          ? Icons.notifications_active_rounded
+                          : Icons.notifications_paused_rounded,
+                      tone: tone,
+                      size: 38,
+                    ),
+                    const SizedBox(width: Sp.x3),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -72,12 +97,19 @@ class AlertsScreen extends ConsumerWidget {
                             runSpacing: Sp.x2,
                             children: [
                               if (alert.location != null)
-                                Tag(alert.location!,
-                                    icon: Icons.location_on_outlined),
+                                Tag(
+                                  alert.location!,
+                                  icon: Icons.location_on_outlined,
+                                  background: Tones.sky.wash,
+                                  foreground: Tones.sky.ink,
+                                ),
                               Tag(
                                 alert.frequency == 'daily' ? 'Daily' : 'Weekly',
                                 icon: Icons.schedule_rounded,
+                                background: Tones.violet.wash,
+                                foreground: Tones.violet.ink,
                               ),
+                              if (!alert.isActive) const Tag('Paused', icon: Icons.pause_rounded),
                             ],
                           ),
                         ],

@@ -20,6 +20,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/errors/api_exception.dart';
 import '../../../core/providers.dart';
 import '../../../core/theme/tokens.dart';
+import '../../../core/utils/format.dart';
 import '../../../core/widgets/common.dart';
 import '../../../core/widgets/states.dart';
 import '../../../data/models/models.dart';
@@ -110,8 +111,10 @@ class _SkillsScreenState extends ConsumerState<SkillsScreen> {
             ErrorView(error: e, onRetry: () => ref.invalidate(profileProvider)),
         data: (_) => Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.all(Sp.x4),
+            DecoratedBox(
+              decoration: const BoxDecoration(gradient: Gradients.hero0),
+              child: Padding(
+              padding: const EdgeInsets.fromLTRB(Sp.x4, Sp.x3, Sp.x4, Sp.x4),
               child: TextField(
                 controller: _search,
                 onChanged: _onSearchChanged,
@@ -131,22 +134,30 @@ class _SkillsScreenState extends ConsumerState<SkillsScreen> {
                 ),
               ),
             ),
+            ),
 
             if (_selected.isNotEmpty)
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: Sp.x4),
+                padding: const EdgeInsets.fromLTRB(Sp.x4, Sp.x3, Sp.x4, 0),
                 child: Align(
                   alignment: Alignment.centerLeft,
                   child: Wrap(
                     spacing: Sp.x2,
                     runSpacing: Sp.x2,
                     children: [
+                      // Each in its own tone, the colour it wears on the profile.
                       for (final s in _selected)
-                        InputChip(
-                          label: Text(s.name),
-                          onDeleted: () =>
-                              setState(() => _selected.remove(s)),
-                        ),
+                        Builder(builder: (_) {
+                          final t = Tones.of(toneOf(s.name));
+                          return InputChip(
+                            label: Text(s.name),
+                            labelStyle: TextStyle(color: t.ink, fontWeight: FontWeight.w600),
+                            backgroundColor: t.wash,
+                            side: BorderSide(color: t.border),
+                            deleteIconColor: t.ink,
+                            onDeleted: () => setState(() => _selected.remove(s)),
+                          );
+                        }),
                     ],
                   ),
                 ),
@@ -175,6 +186,11 @@ class _SkillsScreenState extends ConsumerState<SkillsScreen> {
                         final skill = _results[i];
                         final chosen = _selected.any((s) => s.id == skill.id);
                         return CheckboxListTile(
+                          secondary: ToneBadge(
+                            icon: Icons.bolt_rounded,
+                            tone: Tones.of(toneOf(skill.name)),
+                            size: 32,
+                          ),
                           value: chosen,
                           onChanged: (on) => setState(() {
                             on == true

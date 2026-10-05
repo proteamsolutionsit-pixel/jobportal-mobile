@@ -80,10 +80,27 @@ class NotificationsScreen extends ConsumerWidget {
               ref.invalidate(unreadCountProvider);
             },
             child: ListView.separated(
-              itemCount: list.items.length,
-              separatorBuilder: (_, _) => const Divider(height: 1),
-              itemBuilder: (context, i) =>
-                  _NotificationTile(notification: list.items[i]),
+              padding: const EdgeInsets.fromLTRB(Sp.x4, Sp.x4, Sp.x4, Sp.x6),
+              itemCount: list.items.length + 1,
+              separatorBuilder: (_, _) => const SizedBox(height: Sp.x3),
+              itemBuilder: (context, i) {
+                if (i == 0) {
+                  return PageHero(
+                    title: 'Your updates',
+                    subtitle: 'Every move on your applications, as it happens.',
+                    icon: Icons.notifications_active_rounded,
+                    pills: [
+                      // The payload's own unread count, not a count of
+                      // what is on screen.
+                      (
+                        icon: Icons.mark_email_unread_rounded,
+                        text: list.unread == 0 ? 'All caught up' : '${list.unread} unread',
+                      ),
+                    ],
+                  );
+                }
+                return _NotificationTile(notification: list.items[i - 1]);
+              },
             ),
           );
         },
@@ -96,6 +113,14 @@ class _NotificationTile extends ConsumerWidget {
   const _NotificationTile({required this.notification});
   final NotificationOut notification;
 
+  Tone get _tone => switch (notification.kind) {
+        'application.shortlisted' => Tones.ok,
+        'application.stage' => Tones.violet,
+        'application.rejected' => Tones.sky,
+        'application.received' => Tones.brand,
+        _ => Tones.amber,
+      };
+
   IconData get _icon => switch (notification.kind) {
         'application.shortlisted' => Icons.star_outline_rounded,
         'application.stage' => Icons.trending_up_rounded,
@@ -106,8 +131,11 @@ class _NotificationTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final tone = _tone;
     return Material(
-      color: notification.read ? C.surface : C.brand50,
+      color: notification.read ? C.surface : tone.wash,
+      borderRadius: R.brLg,
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: () async {
           if (!notification.read) {
@@ -124,20 +152,16 @@ class _NotificationTile extends ConsumerWidget {
           // make navigation a server-controlled primitive.
           context.push(routeForNotificationLink(notification.link));
         },
-        child: Padding(
+        child: Container(
           padding: const EdgeInsets.all(Sp.x4),
+          decoration: BoxDecoration(
+            borderRadius: R.brLg,
+            border: Border.all(color: notification.read ? C.line : tone.border),
+          ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: notification.read ? C.surfaceSunk : C.brand100,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(_icon, size: 18, color: C.brand700),
-              ),
+              ToneBadge(icon: _icon, tone: tone, size: 38),
               const SizedBox(width: Sp.x3),
               Expanded(
                 child: Column(
@@ -174,8 +198,8 @@ class _NotificationTile extends ConsumerWidget {
                   width: 8,
                   height: 8,
                   margin: const EdgeInsets.only(top: 6, left: Sp.x2),
-                  decoration: const BoxDecoration(
-                    color: C.brand500,
+                  decoration: BoxDecoration(
+                    color: tone.solid,
                     shape: BoxShape.circle,
                   ),
                 ),

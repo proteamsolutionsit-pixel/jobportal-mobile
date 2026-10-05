@@ -97,6 +97,17 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    PageHero(
+                      title: forced ? 'Choose your password' : 'Update your password',
+                      subtitle: forced
+                          ? 'One quick step to keep your account yours.'
+                          // auth.py change_password bumps token_version: this
+                          // device gets a fresh cookie, every other one is out.
+                          : 'This phone stays signed in; any other device is '
+                              'signed out, for your security.',
+                      icon: Icons.shield_rounded,
+                    ),
+                    const SizedBox(height: Sp.x5),
                     if (forced) ...[
                       const InlineNotice(
                         'Before you continue, please choose a password of your own.',

@@ -12,6 +12,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/providers.dart';
 import '../../../core/theme/tokens.dart';
+import '../../../core/utils/format.dart';
 import '../../../core/widgets/common.dart';
 import '../../../core/widgets/states.dart';
 import '../../../data/models/models.dart';
@@ -53,8 +54,11 @@ class _CompaniesScreenState extends ConsumerState<CompaniesScreen> {
       appBar: AppBar(title: const Text('Companies')),
       body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(Sp.x4, Sp.x3, Sp.x4, Sp.x2),
+          // The search on the brand gradient, as on the Jobs tab.
+          DecoratedBox(
+            decoration: const BoxDecoration(gradient: Gradients.hero0),
+            child: Padding(
+            padding: const EdgeInsets.fromLTRB(Sp.x4, Sp.x2, Sp.x4, Sp.x4),
             child: TextField(
               controller: _search,
               onChanged: _onChanged,
@@ -75,6 +79,7 @@ class _CompaniesScreenState extends ConsumerState<CompaniesScreen> {
                       ),
               ),
             ),
+          ),
           ),
           Expanded(
             child: directory.when(
@@ -112,15 +117,16 @@ class _CompaniesScreenState extends ConsumerState<CompaniesScreen> {
                     separatorBuilder: (_, _) => const SizedBox(height: Sp.x3),
                     itemBuilder: (context, i) {
                       if (i == 0) {
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: Sp.x1),
-                          child: Text(
+                        return Align(
+                          alignment: Alignment.centerLeft,
+                          child: Tag(
                             // The server's `total`, never items.length — the
                             // list is one page.
-                            page.total == 1
-                                ? '1 company'
-                                : '${page.total} companies',
-                            style: Theme.of(context).textTheme.bodySmall,
+                            page.total == 1 ? '1 company hiring' : '${page.total} companies hiring',
+                            icon: Icons.domain_rounded,
+                            background: Tones.ok.wash,
+                            foreground: Tones.ok.ink,
+                            border: Tones.ok.border,
                           ),
                         );
                       }
@@ -151,18 +157,26 @@ class _CompanyCard extends StatelessWidget {
       if (company.city != null && company.city!.isNotEmpty) company.city!,
     ].join(' · ');
 
+    final tone = Tones.of(toneOf(company.name));
     return Material(
       color: C.surface,
       borderRadius: R.brLg,
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
         borderRadius: R.brLg,
         onTap: () => context.push('${Routes.companies}/${company.id}'),
+        // A uniform border plus an accent strip: Flutter refuses a rounded box
+        // whose border colours differ, so the employer's tone is its own bar.
         child: Container(
-          padding: const EdgeInsets.all(Sp.x4),
           decoration: BoxDecoration(
             borderRadius: R.brLg,
             border: Border.all(color: C.line),
           ),
+          child: Stack(
+            children: [
+              Positioned(left: 0, top: 0, bottom: 0, child: Container(width: 4, color: tone.solid)),
+              Padding(
+          padding: const EdgeInsets.fromLTRB(Sp.x4 + 4, Sp.x4, Sp.x4, Sp.x4),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -185,7 +199,7 @@ class _CompanyCard extends StatelessWidget {
                         if (company.isVerified) ...[
                           const SizedBox(width: Sp.x1),
                           const Icon(Icons.verified_rounded,
-                              size: 16, color: C.brand500),
+                              size: 16, color: C.ok500),
                         ],
                       ],
                     ),
@@ -204,12 +218,19 @@ class _CompanyCard extends StatelessWidget {
                         company.jobCount == 1
                             ? '1 open role'
                             : '${company.jobCount} open roles',
+                        icon: Icons.work_rounded,
+                        background: tone.wash,
+                        foreground: tone.ink,
+                        border: tone.border,
                       ),
                     ],
                   ],
                 ),
               ),
               const Icon(Icons.chevron_right_rounded, size: 20, color: C.ink400),
+            ],
+          ),
+              ),
             ],
           ),
         ),

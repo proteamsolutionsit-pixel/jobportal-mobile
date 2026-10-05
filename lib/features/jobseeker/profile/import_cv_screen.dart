@@ -210,15 +210,15 @@ class _ImportCvScreenState extends ConsumerState<ImportCvScreen> {
             ],
 
             if (parsed == null) ...[
-              Text(
-                'Save yourself the typing',
-                style: Theme.of(context).textTheme.headlineSmall,
-              ),
-              const SizedBox(height: Sp.x2),
-              Text(
-                'Upload your CV and we will read what we can out of it. '
-                'You choose what to keep — nothing is saved until you say so.',
-                style: Theme.of(context).textTheme.bodyMedium,
+              const PageHero(
+                title: 'Save yourself the typing',
+                subtitle: 'Upload your CV and we will read what we can out of it. '
+                    'You choose what to keep — nothing is saved until you say so.',
+                icon: Icons.auto_awesome_rounded,
+                pills: [
+                  (icon: Icons.description_rounded, text: 'PDF or Word'),
+                  (icon: Icons.lock_rounded, text: 'You approve every field'),
+                ],
               ),
               const SizedBox(height: Sp.x5),
               if (_progress != null) ...[
@@ -263,15 +263,16 @@ class _ImportCvScreenState extends ConsumerState<ImportCvScreen> {
                 child: const Text('Try another file'),
               ),
             ] else ...[
-              Text(
-                'Here is what we read',
-                style: Theme.of(context).textTheme.headlineSmall,
-              ),
-              const SizedBox(height: Sp.x2),
-              Text(
-                'From ${parsed.fileName}. Untick anything that is wrong — this '
-                'is a best guess, not a fact.',
-                style: Theme.of(context).textTheme.bodyMedium,
+              PageHero(
+                title: 'Here is what we read',
+                subtitle: 'From ${parsed.fileName}. Untick anything that is wrong — '
+                    'this is a best guess, not a fact.',
+                icon: Icons.fact_check_rounded,
+                pills: [
+                  (icon: Icons.checklist_rounded, text: '${parsed.fields.length} fields found'),
+                  if (parsed.skills.isNotEmpty)
+                    (icon: Icons.bolt_rounded, text: '${parsed.skills.length} skills'),
+                ],
               ),
               const SizedBox(height: Sp.x4),
 

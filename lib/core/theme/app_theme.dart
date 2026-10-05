@@ -191,6 +191,19 @@ abstract final class AppTheme {
         }),
       ),
 
+      // The add-something buttons (alert, link, history entry) in the brand
+      // colour, rather than Material's pale container with an outline.
+      floatingActionButtonTheme: const FloatingActionButtonThemeData(
+        backgroundColor: C.brand500,
+        foregroundColor: Colors.white,
+        elevation: 3,
+        focusElevation: 3,
+        hoverElevation: 4,
+        highlightElevation: 5,
+        shape: StadiumBorder(),
+        extendedTextStyle: TextStyle(fontFamily: Fonts.body, fontSize: 15, fontWeight: FontWeight.w600),
+      ),
+
       snackBarTheme: const SnackBarThemeData(
         backgroundColor: C.ink800,
         contentTextStyle: TextStyle(fontFamily: Fonts.body, color: Colors.white),

@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/providers.dart';
 import '../../../core/theme/tokens.dart';
+import '../../../core/utils/format.dart';
 import '../../../core/widgets/common.dart';
 import '../../../core/widgets/states.dart';
 import '../../../data/models/models.dart';
@@ -39,6 +40,8 @@ class CompanyDetailScreen extends ConsumerWidget {
                 const SizedBox(height: Sp.x5),
                 SectionCard(
                   title: 'About',
+                  icon: Icons.apartment_rounded,
+                  tone: Tones.brand,
                   // Plain Text, never markup. Employer-supplied copy is
                   // untrusted, and this is the same rule the job description
                   // and the recruiter note follow.
@@ -49,13 +52,21 @@ class CompanyDetailScreen extends ConsumerWidget {
                 ),
               ],
               const SizedBox(height: Sp.x5),
-              Text(
-                d.jobs.isEmpty
-                    ? 'Open roles'
-                    : d.jobs.length == 1
-                        ? '1 open role'
-                        : '${d.jobs.length} open roles',
-                style: Theme.of(context).textTheme.titleMedium,
+              Row(
+                children: [
+                  ToneBadge(icon: Icons.work_rounded, tone: Tones.ok, size: 32),
+                  const SizedBox(width: Sp.x3),
+                  Text(
+                    // The server's open_jobs where it sent one: the list may be
+                    // a page, and a count of it is not the employer's total.
+                    switch (d.company.jobCount ?? d.jobs.length) {
+                      0 => 'Open roles',
+                      1 => '1 open role',
+                      final n => '$n open roles',
+                    },
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                ],
               ),
               const SizedBox(height: Sp.x3),
               if (d.jobs.isEmpty)
@@ -95,35 +106,59 @@ class _Header extends StatelessWidget {
         '${company.sizeBucket} employees',
     ];
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        CompanyLogo(path: company.logoPath, name: company.name, size: 64),
-        const SizedBox(width: Sp.x4),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Flexible(
-                    child: Text(company.name, style: text.headlineSmall),
-                  ),
-                  if (company.isVerified) ...[
-                    const SizedBox(width: Sp.x2),
-                    const Icon(Icons.verified_rounded,
-                        size: 18, color: C.brand500),
-                  ],
-                ],
-              ),
-              if (facts.isNotEmpty) ...[
-                const SizedBox(height: Sp.x1),
-                Text(facts.join(' · '), style: text.bodySmall),
-              ],
-            ],
+    return GradientBanner(
+      layers: Gradients.band,
+      padding: const EdgeInsets.all(Sp.x4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(3),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(R.md + 3),
+            ),
+            child: CompanyLogo(path: company.logoPath, name: company.name, size: 60),
           ),
-        ),
-      ],
+          const SizedBox(width: Sp.x4),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  company.name,
+                  style: text.headlineSmall?.copyWith(color: Colors.white),
+                ),
+                if (facts.isNotEmpty) ...[
+                  const SizedBox(height: Sp.x1),
+                  Text(
+                    facts.join(' · '),
+                    style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.9)),
+                  ),
+                ],
+                if (company.isVerified) ...[
+                  const SizedBox(height: Sp.x2),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: Sp.x2 + 2, vertical: 4),
+                    decoration: const BoxDecoration(color: Colors.white, borderRadius: R.brPill),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.verified_rounded, size: 14, color: C.ok500),
+                        SizedBox(width: 4),
+                        Text(
+                          'Verified employer',
+                          style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: C.ok600),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -151,6 +186,8 @@ class _RoleRow extends StatelessWidget {
           ),
           child: Row(
             children: [
+              ToneBadge(icon: Icons.work_outline_rounded, tone: Tones.of(toneOf(job.title)), size: 36),
+              const SizedBox(width: Sp.x3),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,

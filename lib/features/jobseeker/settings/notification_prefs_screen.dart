@@ -186,7 +186,12 @@ class _EventCard extends StatelessWidget {
                     fontWeight: FontWeight.w600,
                     color: c == event.channel ? Colors.white : tone.ink,
                   ),
-                  onSelected: busy || c == event.channel ? null : (_) => onChanged(c),
+                  // Never null: a chip with no handler draws as disabled, which
+                  // made the CURRENT choice look greyed out. Choosing it again
+                  // simply does nothing.
+                  onSelected: (_) {
+                    if (!busy && c != event.channel) onChanged(c);
+                  },
                 ),
             ],
           ),

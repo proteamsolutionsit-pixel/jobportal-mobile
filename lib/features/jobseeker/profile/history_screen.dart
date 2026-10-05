@@ -77,12 +77,28 @@ class HistoryScreen extends ConsumerWidget {
             onRefresh: () async => ref.invalidate(historyProvider(kind)),
             child: ListView.separated(
               padding: const EdgeInsets.fromLTRB(Sp.x4, Sp.x4, Sp.x4, 96),
-              itemCount: list.length,
+              itemCount: list.length + 1,
               separatorBuilder: (_, _) => const SizedBox(height: Sp.x3),
-              itemBuilder: (context, i) => _EntryCard(
-                kind: kind,
-                entry: list[i],
-              ),
+              itemBuilder: (context, i) {
+                if (i == 0) {
+                  return PageHero(
+                    title: kind.label,
+                    subtitle: switch (kind) {
+                      HistoryKind.employment => 'The roles you have held, newest first.',
+                      HistoryKind.education => 'Your qualifications — recruiters filter by these.',
+                      HistoryKind.certifications => 'Certifications that make you stand out.',
+                    },
+                    icon: _kindIcon(kind),
+                    pills: [
+                      (
+                        icon: Icons.check_circle_rounded,
+                        text: '${list.length} added',
+                      ),
+                    ],
+                  );
+                }
+                return _EntryCard(kind: kind, entry: list[i - 1]);
+              },
             ),
           );
         },
@@ -90,6 +106,20 @@ class HistoryScreen extends ConsumerWidget {
     );
   }
 }
+
+IconData _kindIcon(HistoryKind kind) => switch (kind) {
+      HistoryKind.employment => Icons.business_center_rounded,
+      HistoryKind.education => Icons.school_rounded,
+      HistoryKind.certifications => Icons.workspace_premium_rounded,
+    };
+
+/// The same tone the profile gives each section, so the screen matches the
+/// card that opened it.
+Tone _kindTone(HistoryKind kind) => switch (kind) {
+      HistoryKind.employment => Tones.teal,
+      HistoryKind.education => Tones.sky,
+      HistoryKind.certifications => Tones.pink,
+    };
 
 class _EntryCard extends ConsumerWidget {
   const _EntryCard({required this.kind, required this.entry});
@@ -113,6 +143,7 @@ class _EntryCard extends ConsumerWidget {
         color: C.surface,
         borderRadius: R.brLg,
         border: Border.all(color: C.line),
+        boxShadow: Shadows.sm,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -120,6 +151,8 @@ class _EntryCard extends ConsumerWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              ToneBadge(icon: _kindIcon(kind), tone: _kindTone(kind), size: 38),
+              const SizedBox(width: Sp.x3),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,

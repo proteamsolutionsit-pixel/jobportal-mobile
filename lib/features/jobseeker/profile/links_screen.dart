@@ -14,6 +14,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/errors/api_exception.dart';
 import '../../../core/providers.dart';
 import '../../../core/theme/tokens.dart';
+import '../../../core/utils/format.dart';
 import '../../../core/widgets/common.dart';
 import '../../../core/widgets/states.dart';
 import '../../../data/models/models.dart';
@@ -51,32 +52,41 @@ class LinksScreen extends ConsumerWidget {
 
           return ListView.separated(
             padding: const EdgeInsets.fromLTRB(Sp.x4, Sp.x4, Sp.x4, 96),
-            itemCount: list.length,
+            itemCount: list.length + 1,
             separatorBuilder: (_, _) => const SizedBox(height: Sp.x3),
             itemBuilder: (context, i) {
-              final link = list[i];
+              if (i == 0) {
+                return PageHero(
+                  title: 'Online presence',
+                  subtitle: 'Your LinkedIn, portfolio or GitHub — show recruiters more.',
+                  icon: Icons.public_rounded,
+                  pills: [
+                    (icon: Icons.link_rounded, text: '${list.length} ${list.length == 1 ? 'link' : 'links'}'),
+                  ],
+                );
+              }
+              final link = list[i - 1];
               return Container(
                 padding: const EdgeInsets.all(Sp.x3),
                 decoration: BoxDecoration(
                   color: C.surface,
                   borderRadius: R.brLg,
                   border: Border.all(color: C.line),
+                  boxShadow: Shadows.sm,
                 ),
                 child: Row(
                   children: [
-                    Container(
-                      width: 38,
-                      height: 38,
-                      decoration: BoxDecoration(
-                        color: link.isSafe ? C.brand50 : C.bad50,
-                        borderRadius: BorderRadius.circular(R.md),
-                      ),
-                      child: Icon(
-                        link.isSafe ? Icons.link_rounded : Icons.warning_amber_rounded,
-                        size: 18,
-                        color: link.isSafe ? C.brand600 : C.bad500,
-                      ),
-                    ),
+                    link.isSafe
+                        ? ToneBadge(
+                            icon: Icons.link_rounded,
+                            tone: Tones.of(toneOf(link.label ?? link.url)),
+                            size: 38,
+                          )
+                        : ToneBadge(
+                            icon: Icons.warning_amber_rounded,
+                            tone: (wash: C.bad50, border: C.bad50, ink: C.bad600, solid: C.bad500),
+                            size: 38,
+                          ),
                     const SizedBox(width: Sp.x3),
                     Expanded(
                       child: Column(

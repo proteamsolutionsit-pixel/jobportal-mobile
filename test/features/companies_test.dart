@@ -155,7 +155,7 @@ void main() {
       expect(find.text('3M India'), findsOneWidget);
       expect(find.text('Quiet Startup'), findsOneWidget);
       // 214, not 2.
-      expect(find.text('214 companies'), findsOneWidget);
+      expect(find.text('214 companies hiring'), findsOneWidget);
     });
 
     testWidgets('shows the open-role count, and omits it at zero',

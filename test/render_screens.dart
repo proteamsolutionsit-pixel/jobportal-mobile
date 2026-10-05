@@ -7,6 +7,7 @@
 /// fonts loaded (flutter_test otherwise draws every glyph as a box).
 library;
 
+import 'dart:convert';
 import 'dart:io';
 import 'dart:ui' as ui;
 
@@ -21,6 +22,7 @@ import 'package:http_mock_adapter/http_mock_adapter.dart';
 import 'package:jobportal_mobile/core/network/api_client.dart';
 import 'package:jobportal_mobile/core/network/csrf_interceptor.dart';
 import 'package:jobportal_mobile/core/providers.dart';
+import 'package:jobportal_mobile/core/widgets/common.dart';
 import 'package:jobportal_mobile/main.dart';
 
 const _base = 'http://127.0.0.1:8000';
@@ -74,6 +76,10 @@ Map<String, dynamic> _job(int id, String title, String company, String loc,
       'closure': null,
     };
 
+/// A real captured server response (see test/fixtures/live/).
+Object? _live(String name) =>
+    jsonDecode(File('test/fixtures/live/$name.json').readAsStringSync());
+
 Map<String, dynamic> _brief(Map<String, dynamic> j) => {
       for (final k in ['id', 'title', 'slug', 'location', 'job_type', 'work_mode', 'status', 'company'])
         k: j[k],
@@ -108,6 +114,21 @@ Future<void> _snap(WidgetTester tester, String name) async {
   out.writeAsBytesSync(bytes!.buffer.asUint8List());
   // ignore: avoid_print
   print('WROTE ${out.absolute.path}');
+}
+
+/// Scroll the first list until [f] is built, then bring it on screen.
+Future<void> _reveal(WidgetTester tester, Finder f) async {
+  // From the top, so a target the list has already scrolled past is found.
+  for (var i = 0; i < 6; i++) {
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, 900));
+    await tester.pump(const Duration(milliseconds: 60));
+  }
+  for (var i = 0; i < 15 && f.evaluate().isEmpty; i++) {
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, -300));
+    await tester.pump(const Duration(milliseconds: 60));
+  }
+  await tester.ensureVisible(f.first);
+  await tester.pump(const Duration(milliseconds: 60));
 }
 
 Future<void> _frames(WidgetTester tester, [int n = 20]) async {
@@ -168,7 +189,12 @@ void main() {
             _job(5, 'Workforce Scheduler', 'Capgemini', 'Chennai', mode: 'remote'),
           ]))
       ..onGet('/api/seeker/viewers', (s) => s.reply(200, {'items': [], 'total': 3, 'view_total': 7}))
-      ..onGet('/api/seeker/alerts', (s) => s.reply(200, []))
+      ..onGet('/api/seeker/alerts', (s) => s.reply(200, [
+            {'id': 1, 'name': 'HR jobs in Bengaluru', 'keywords': 'HR Executive', 'location': 'Bengaluru',
+             'frequency': 'daily', 'is_active': true, 'created_at': '2026-09-20T10:00:00'},
+            {'id': 2, 'name': 'Payroll', 'keywords': 'Payroll', 'location': null,
+             'frequency': 'weekly', 'is_active': false, 'created_at': '2026-09-10T10:00:00'},
+          ]))
       ..onGet('/api/seeker/suggested', (s) => s.reply(200, {'items': [
             _job(4, 'HR Scheduler', 'Capgemini', 'Bengaluru'),
           ]}))
@@ -210,11 +236,68 @@ void main() {
               {'id': 5, 'name': 'Budgeting', 'slug': 'e'},
             ],
           }))
-      ..onGet('/api/seeker/employment', (s) => s.reply(200, {'items': []}))
       ..onGet('/api/seeker/education', (s) => s.reply(200, {'items': []}))
       ..onGet('/api/seeker/certifications', (s) => s.reply(200, {'items': []}))
-      ..onGet('/api/seeker/links', (s) => s.reply(200, {'items': []}))
-      ..onGet('/api/notifications', (s) => s.reply(200, {'items': [], 'unread': 2, 'more': false}))
+      ..onGet('/api/notifications', (s) => s.reply(200, {
+            'items': [
+              {'id': 1, 'kind': 'application.shortlisted', 'title': 'You were shortlisted for HR Executive',
+               'body': 'Accenture moved your application forward.', 'link': '/jobs/1', 'read': false,
+               'created_at': '2026-10-05T08:00:00'},
+              {'id': 2, 'kind': 'application.stage', 'title': 'Interview invitation: Talent Acquisition Specialist',
+               'body': 'Bosch would like to interview you.', 'link': '/seeker/applications', 'read': false,
+               'created_at': '2026-10-04T12:00:00'},
+              {'id': 3, 'kind': 'application.rejected', 'title': 'Update on Payroll Associate',
+               'body': 'Infosys has filled this role.', 'link': '/seeker/applications', 'read': true,
+               'created_at': '2026-09-30T09:00:00'},
+            ],
+            'unread': 2,
+            'more': false,
+          }))
+      ..onGet('/api/notifications/preferences', (s) => s.reply(200, _live('notification_prefs')))
+      ..onGet('/api/companies', (s) => s.reply(200, {
+            'items': [
+              {'id': 1, 'name': 'Accenture', 'slug': 'accenture', 'industry': 'IT Services',
+               'hq_location': 'Bengaluru', 'is_verified': true, 'open_jobs': 12},
+              {'id': 3, 'name': 'Bosch', 'slug': 'bosch', 'industry': 'Engineering',
+               'hq_location': 'Bengaluru', 'is_verified': true, 'open_jobs': 4},
+              {'id': 2, 'name': 'Infosys', 'slug': 'infosys', 'industry': 'IT Services',
+               'hq_location': 'Pune', 'is_verified': false, 'open_jobs': 7},
+            ],
+            'total': 149, 'page': 1, 'per_page': 20,
+          }))
+      ..onGet('/api/companies/1', (s) => s.reply(200, {
+            'id': 1, 'name': 'Accenture', 'slug': 'accenture', 'logo_path': null,
+            'industry': 'IT Services', 'hq_location': 'Bengaluru', 'size_bucket': '10000+',
+            'is_verified': true, 'open_jobs': 12,
+            'about': 'A global professional services company helping clients build their digital core.',
+            'website': 'https://accenture.com',
+            'jobs': [
+              {'id': 1, 'title': 'HR Executive', 'slug': 'hr-executive', 'location': 'Bengaluru',
+               'min_experience': 1, 'hide_salary': false, 'skill_level': 'experienced',
+               'job_type': 'full_time', 'work_mode': 'onsite', 'company_id': 1,
+               'company_name': 'Accenture', 'logo_path': null},
+              {'id': 6, 'title': 'Payroll Specialist', 'slug': 'payroll-specialist', 'location': 'Hyderabad',
+               'min_experience': 2, 'hide_salary': false, 'skill_level': 'experienced',
+               'job_type': 'full_time', 'work_mode': 'hybrid', 'company_id': 1,
+               'company_name': 'Accenture', 'logo_path': null},
+            ],
+          }))
+      ..onGet('/api/seeker/employment', (s) => s.reply(200, [
+            {'id': 1, 'company_name': 'APT HR tech', 'designation': 'HR Scheduler', 'location': 'Bengaluru',
+             'start_date': '2024-05-01', 'end_date': '2024-12-31', 'is_current': false,
+             'description': 'Rostered 300+ staff across shifts for an Accenture account.'},
+            {'id': 2, 'company_name': 'Playto Lab', 'designation': 'Relationship Manager Intern',
+             'location': 'Bengaluru', 'start_date': '2023-01-01', 'end_date': '2023-06-30',
+             'is_current': false, 'description': null},
+          ]))
+      ..onGet('/api/seeker/links', (s) => s.reply(200, [
+            {'id': 1, 'label': 'LinkedIn', 'url': 'https://linkedin.com/in/tirumurthy', 'sort_order': 0},
+            {'id': 2, 'label': 'Portfolio', 'url': 'https://tirumurthy.dev', 'sort_order': 1},
+          ]))
+      ..onGet('/api/seeker/skills', (s) => s.reply(200, {'items': [
+            {'id': 7, 'name': 'HR Analytics', 'slug': 'hr-analytics', 'category': 'HR'},
+            {'id': 8, 'name': 'HR Operations', 'slug': 'hr-operations', 'category': 'HR'},
+          ]}))
       ..onGet('/api/assistant/intents', (s) => s.reply(200, {
             'role': 'seeker',
             'chips': ['Recommend jobs for me', 'How complete is my profile?', 'My applications', 'Remote jobs'],
@@ -293,5 +376,78 @@ void main() {
     await tester.tap(find.byIcon(Icons.settings_outlined));
     await _frames(tester, 25);
     await _snap(tester, '10-settings');
+
+    await tester.tap(find.text('Job alerts'));
+    await _frames(tester, 20);
+    await _snap(tester, '11-alerts');
+    await tester.pageBack();
+    await _frames(tester);
+
+    await tester.tap(find.text('Notifications'));
+    await _frames(tester, 20);
+    await _snap(tester, '12-notification-prefs');
+    await tester.pageBack();
+    await _frames(tester);
+
+    await tester.tap(find.text('Change password'));
+    await _frames(tester, 20);
+    await _snap(tester, '13-change-password');
+    await tester.pageBack();
+    await _frames(tester);
+    await tester.pageBack();
+    await _frames(tester);
+
+    // Profile: the edit screens.
+    await _reveal(tester, find.text('Employment'));
+    await tester.tap(find.text('Manage').first);
+    await _frames(tester, 20);
+    await _snap(tester, '14-employment');
+    await tester.pageBack();
+    await _frames(tester);
+
+    await _reveal(tester, find.text('Skills'));
+    await tester.tap(find.descendant(
+      of: find.ancestor(of: find.text('Skills').first, matching: find.byType(SectionCard)),
+      matching: find.byType(TextButton),
+    ));
+    await _frames(tester, 20);
+    await tester.enterText(find.byType(TextField).first, 'HR');
+    await _frames(tester, 20);
+    await _snap(tester, '15-skills');
+    await tester.pageBack();
+    await _frames(tester);
+
+    await _reveal(tester, find.text('Online presence'));
+    await tester.tap(find.text('Manage').last);
+    await _frames(tester, 20);
+    await _snap(tester, '16-links');
+    await tester.pageBack();
+    await _frames(tester);
+
+    await tester.tap(find.byIcon(Icons.notifications_none_rounded).first);
+    await _frames(tester, 20);
+    await _snap(tester, '17-notifications');
+    await tester.pageBack();
+    await _frames(tester);
+
+    await tester.tap(find.text('Home').last);
+    await _frames(tester);
+    await _reveal(tester, find.text('Browse companies'));
+    await tester.tap(find.text('Browse companies'));
+    await _frames(tester, 20);
+    await _snap(tester, '18-companies');
+    await tester.tap(find.text('Accenture').first);
+    await _frames(tester, 20);
+    await _snap(tester, '19-company');
+    await tester.pageBack();
+    await _frames(tester);
+    await tester.pageBack();
+    await _frames(tester);
+
+    await tester.tap(find.text('Jobs').last);
+    await _frames(tester, 20);
+    await tester.tap(find.byIcon(Icons.tune_rounded).first);
+    await _frames(tester, 25);
+    await _snap(tester, '20-filters');
   });
 }
